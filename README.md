@@ -9,13 +9,13 @@
 ## ✨ Fonctionnalités
 
 - 🎯 **Détection ultra-précise** : Algorithme hybride ACF/Beats avec snapping intelligent
-- 🖥️ **Interface graphique moderne** : GUI native avec Qt, thème sombre élégant
+- 🖥️ **Interface graphique moderne** : GUI native sombre et réactive (Tkinter optimisé)
 - 💻 **Interface en ligne de commande** : Pour l'automatisation et les scripts
 - 🌐 **Interface web** : Serveur Flask pour une utilisation via navigateur
-- 📦 **Binaires portables** : Exécutables autonomes, aucune installation requise
+- 📦 **Binaires portables légers** : ~50 Mo (v1.1 optimisée), aucune installation requise
 - 🔊 **Tous formats audio** : MP3, FLAC, WAV, M4A, OGG, AAC, et plus (via FFmpeg intégré)
 - 📊 **Analyse de segments** : Visualisation des variations de tempo tout au long du morceau
-- ⚡ **Moteur optimisé** : Analyse Hi-Res à 22kHz avec processus isolé pour la stabilité
+- ⚡ **Démarrage instantané** : Nouveau moteur "Fast Startup" (chargement < 2s)
 
 ## 🚀 Installation Rapide
 

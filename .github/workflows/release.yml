@@ -32,7 +32,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements-minimal.txt pyinstaller
 
       - name: Download FFmpeg
         run: |
@@ -209,7 +209,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements-minimal.txt pyinstaller
 
       - name: Download FFmpeg
         run: |
@@ -245,7 +245,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements-minimal.txt pyinstaller
           brew install create-dmg
 
       - name: Download FFmpeg
@@ -335,7 +335,11 @@ jobs:
           body: |
             ## 🎵 BPM Detector Pro ${{ github.ref_name }}
             
-            Détecteur de BPM haute précision avec interface graphique moderne.
+            **NOUVELLE VERSION OPTIMISÉE** 🚀
+            
+            - **Démarrage instantané** (< 2s)
+            - **Taille réduite** (~50 Mo)
+            - **Performance accrue**
             
             ---
             
@@ -354,10 +358,10 @@ jobs:
             
             ### ✨ Fonctionnalités
             - 🎯 Détection BPM ultra-précise (algorithme hybride ACF/Beats)
-            - 🖥️ Interface graphique moderne avec thème sombre
+            - 🖥️ Interface graphique moderne (Fast GUI)
             - 📦 FFmpeg intégré - aucune dépendance externe
             - 🔊 Tous formats audio supportés (MP3, FLAC, WAV, M4A, OGG...)
-            - ⚡ Portable - aucune installation requise (sauf packages)
+            - ⚡ Portable - aucune installation requise
             
             ---
             

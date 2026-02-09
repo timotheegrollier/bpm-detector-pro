@@ -13,9 +13,13 @@ ENV/
 # Build and Packaging
 build/
 dist/
-# PyInstaller generated spec files (but keep our main one)
+# PyInstaller generated spec files (but keep our main ones)
 *.spec
 !bpm-detector.spec
+!bpm-detector-optimized.spec
+
+# Downloaded tools (UPX, etc.)
+tools/
 *.manifest
 *.exe
 !scripts/*.ps1
