@@ -1,0 +1,131 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Déclenché sur les tags comme v1.0.0, v1.1.0, etc.
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Download FFmpeg
+        run: |
+          mkdir -p packaging/ffmpeg/linux
+          curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ffmpeg.tar.xz
+          tar xf ffmpeg.tar.xz
+          mv ffmpeg-*-amd64-static/ffmpeg packaging/ffmpeg/linux/ffmpeg
+          chmod +x packaging/ffmpeg/linux/ffmpeg
+
+      - name: Build Linux binary
+        run: |
+          chmod +x scripts/build_linux.sh
+          ./scripts/build_linux.sh
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BPM-Detector-Pro-Linux
+          path: dist/BPM-Detector-Pro
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Download FFmpeg
+        run: |
+          New-Item -ItemType Directory -Force -Path packaging/ffmpeg/windows
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-extract
+          $ffmpegExe = Get-ChildItem -Path ffmpeg-extract -Recurse -Name ffmpeg.exe | Select-Object -First 1
+          Copy-Item "ffmpeg-extract/$ffmpegExe" packaging/ffmpeg/windows/ffmpeg.exe
+
+      - name: Build Windows binary
+        run: |
+          .\scripts\build_windows.ps1
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BPM-Detector-Pro-Windows
+          path: dist/BPM-Detector-Pro.exe
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BPM-Detector-Pro-Linux
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BPM-Detector-Pro-Windows
+          path: artifacts/windows
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # Linux binary
+          cp artifacts/linux/BPM-Detector-Pro release/BPM-Detector-Pro-Linux-x64
+          chmod +x release/BPM-Detector-Pro-Linux-x64
+          # Windows binary
+          cp artifacts/windows/BPM-Detector-Pro.exe release/BPM-Detector-Pro-Windows-x64.exe
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: BPM Detector Pro ${{ github.ref_name }}
+          body: |
+            ## 🎵 BPM Detector Pro ${{ github.ref_name }}
+            
+            ### 📥 Téléchargement
+            
+            | Plateforme | Fichier | Instructions |
+            |------------|---------|--------------|
+            | 🐧 Linux | `BPM-Detector-Pro-Linux-x64` | Téléchargez, rendez exécutable (`chmod +x`), exécutez |
+            | 🪟 Windows | `BPM-Detector-Pro-Windows-x64.exe` | Téléchargez, double-cliquez pour lancer |
+            
+            ### ✨ Fonctionnalités
+            - Détection BPM ultra-précise avec algorithme hybride
+            - Interface graphique moderne (thème sombre)
+            - FFmpeg intégré - aucune dépendance externe
+            - Portable - aucune installation requise
+            
+            ---
+            Voir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour la documentation complète.
+          files: |
+            release/BPM-Detector-Pro-Linux-x64
+            release/BPM-Detector-Pro-Windows-x64.exe
+          draft: false
+          prerelease: false
