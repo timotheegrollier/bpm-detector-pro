@@ -2,31 +2,35 @@ app-id: com.bpm.Detector
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
-command: bpm-detector
+command: bpm-detector-pro
 finish-args:
   - --socket=wayland
   - --socket=x11
-  - --filesystem=home
+  - --socket=fallback-x11
+  - --share=ipc
+  - --filesystem=home:ro
+  - --filesystem=xdg-music:ro
+  - --device=dri
 modules:
-  - name: bpm-detector
+  - name: bpm-detector-pro
     buildsystem: simple
     build-options:
-      network: true
       env:
         PIP_DISABLE_PIP_VERSION_CHECK: '1'
-        PIP_NO_CACHE_DIR: '1'
     build-commands:
-      - test -f packaging/ffmpeg/linux/ffmpeg
-      - chmod +x packaging/ffmpeg/linux/ffmpeg
-      - python3 -m venv venv
-      - . venv/bin/activate && pip install --upgrade pip
-      - . venv/bin/activate && pip install -r requirements.txt pyinstaller
-      - . venv/bin/activate && pyinstaller --noconfirm --clean --onefile --windowed --name bpm-detector --add-binary packaging/ffmpeg/linux/ffmpeg:ffmpeg --collect-submodules librosa --collect-submodules soundfile --collect-data librosa --collect-data soundfile --collect-binaries soundfile bpm_gui.py
-      - install -Dm755 dist/bpm-detector /app/bin/bpm-detector
-      - install -Dm755 packaging/ffmpeg/linux/ffmpeg /app/bin/ffmpeg
+      # Use pre-built binary if available, otherwise build from source
+      - |
+        if [ -f flatpak-build/BPM-Detector-Pro ]; then
+          install -Dm755 flatpak-build/BPM-Detector-Pro /app/bin/bpm-detector-pro
+        else
+          python3 -m pip install --user -r requirements.txt pyinstaller
+          python3 -m PyInstaller --noconfirm --clean bpm-detector.spec
+          install -Dm755 dist/BPM-Detector-Pro /app/bin/bpm-detector-pro
+        fi
       - install -Dm644 packaging/flatpak/com.bpm.Detector.desktop /app/share/applications/com.bpm.Detector.desktop
       - install -Dm644 packaging/flatpak/com.bpm.Detector.metainfo.xml /app/share/metainfo/com.bpm.Detector.metainfo.xml
       - install -Dm644 packaging/assets/bpm-detector.svg /app/share/icons/hicolor/scalable/apps/com.bpm.Detector.svg
     sources:
       - type: dir
         path: ../..
+

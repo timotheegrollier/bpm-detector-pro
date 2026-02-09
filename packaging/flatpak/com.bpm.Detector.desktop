@@ -2,7 +2,7 @@
 Type=Application
 Name=BPM Detector
 Comment=Detection rapide du tempo pour fichiers audio
-Exec=bpm-detector
+Exec=bpm-detector-pro
 Icon=com.bpm.Detector
 Categories=Audio;AudioVideo;
 Terminal=false

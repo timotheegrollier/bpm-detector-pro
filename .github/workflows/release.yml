@@ -3,11 +3,18 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'  # Déclenché sur les tags comme v1.0.0, v1.1.0, etc.
+      - 'v*'
+
+env:
+  APP_NAME: BPM-Detector-Pro
+  APP_ID: com.bpm.Detector
 
 jobs:
+  # ============================================
+  # LINUX BUILD (Binary + DEB + RPM + Flatpak)
+  # ============================================
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -16,7 +23,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev rubygems build-essential rpm libfuse2
+          sudo gem install --no-document fpm
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
@@ -34,12 +47,114 @@ jobs:
           chmod +x scripts/build_linux.sh
           ./scripts/build_linux.sh
 
-      - name: Upload Linux artifact
+      - name: Create DEB package
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mkdir -p pkg-root/usr/bin
+          mkdir -p pkg-root/usr/share/applications
+          mkdir -p pkg-root/usr/share/icons/hicolor/scalable/apps
+          
+          cp dist/${{ env.APP_NAME }} pkg-root/usr/bin/bpm-detector-pro
+          chmod +x pkg-root/usr/bin/bpm-detector-pro
+          
+          # Desktop file
+          cat > pkg-root/usr/share/applications/bpm-detector-pro.desktop << 'EOF'
+          [Desktop Entry]
+          Name=BPM Detector Pro
+          Comment=High-precision BPM detection for audio files
+          Exec=bpm-detector-pro
+          Icon=bpm-detector-pro
+          Terminal=false
+          Type=Application
+          Categories=AudioVideo;Audio;Music;
+          EOF
+          
+          # Icon
+          cp packaging/assets/bpm-detector.svg pkg-root/usr/share/icons/hicolor/scalable/apps/bpm-detector-pro.svg
+          
+          fpm -s dir -t deb \
+            -n bpm-detector-pro \
+            -v "$VERSION" \
+            --description "High-precision BPM detection for audio files" \
+            --url "https://github.com/${{ github.repository }}" \
+            --license "MIT" \
+            --maintainer "BPM Detector Pro Team" \
+            -C pkg-root \
+            .
+          
+          mv *.deb dist/bpm-detector-pro_${VERSION}_amd64.deb
+
+      - name: Create RPM package
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          fpm -s dir -t rpm \
+            -n bpm-detector-pro \
+            -v "$VERSION" \
+            --description "High-precision BPM detection for audio files" \
+            --url "https://github.com/${{ github.repository }}" \
+            --license "MIT" \
+            --maintainer "BPM Detector Pro Team" \
+            -C pkg-root \
+            .
+          
+          mv *.rpm dist/bpm-detector-pro-${VERSION}.x86_64.rpm
+
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: BPM-Detector-Pro-Linux
-          path: dist/BPM-Detector-Pro
+          name: linux-builds
+          path: |
+            dist/${{ env.APP_NAME }}
+            dist/*.deb
+            dist/*.rpm
 
+  # ============================================
+  # FLATPAK BUILD
+  # ============================================
+  build-flatpak:
+    runs-on: ubuntu-22.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-45
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements.txt pyinstaller
+
+      - name: Download FFmpeg
+        run: |
+          mkdir -p packaging/ffmpeg/linux
+          curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ffmpeg.tar.xz
+          tar xf ffmpeg.tar.xz
+          mv ffmpeg-*-amd64-static/ffmpeg packaging/ffmpeg/linux/ffmpeg
+          chmod +x packaging/ffmpeg/linux/ffmpeg
+
+      - name: Build with PyInstaller first
+        run: |
+          pyinstaller --noconfirm --clean bpm-detector.spec
+          mkdir -p flatpak-build
+          cp dist/${{ env.APP_NAME }} flatpak-build/
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: ${{ env.APP_NAME }}.flatpak
+          manifest-path: packaging/flatpak/${{ env.APP_ID }}.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-build
+          path: ${{ env.APP_NAME }}.flatpak
+
+  # ============================================
+  # WINDOWS BUILD
+  # ============================================
   build-windows:
     runs-on: windows-latest
     steps:
@@ -70,37 +185,107 @@ jobs:
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BPM-Detector-Pro-Windows
-          path: dist/BPM-Detector-Pro.exe
+          name: windows-build
+          path: dist/${{ env.APP_NAME }}.exe
 
+  # ============================================
+  # MACOS BUILD (.app + .dmg)
+  # ============================================
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+          brew install create-dmg
+
+      - name: Download FFmpeg
+        run: |
+          mkdir -p packaging/ffmpeg/macos
+          curl -L https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip -o ffmpeg.zip
+          unzip ffmpeg.zip
+          mv ffmpeg packaging/ffmpeg/macos/ffmpeg
+          chmod +x packaging/ffmpeg/macos/ffmpeg
+
+      - name: Build macOS app
+        run: |
+          pyinstaller --noconfirm --clean bpm-detector.spec
+          
+      - name: Create DMG
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mkdir -p dmg-content
+          cp -r "dist/${{ env.APP_NAME }}.app" dmg-content/ 2>/dev/null || cp dist/${{ env.APP_NAME }} dmg-content/
+          
+          # Create DMG
+          create-dmg \
+            --volname "${{ env.APP_NAME }}" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --hide-extension "${{ env.APP_NAME }}" \
+            --app-drop-link 450 185 \
+            "dist/${{ env.APP_NAME }}-macOS.dmg" \
+            "dmg-content/" || true
+          
+          # Fallback: create simple DMG if create-dmg fails
+          if [ ! -f "dist/${{ env.APP_NAME }}-macOS.dmg" ]; then
+            hdiutil create -volname "${{ env.APP_NAME }}" -srcfolder dmg-content -ov -format UDZO "dist/${{ env.APP_NAME }}-macOS.dmg"
+          fi
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: dist/${{ env.APP_NAME }}-macOS.dmg
+
+  # ============================================
+  # CREATE GITHUB RELEASE
+  # ============================================
   release:
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-macos]
+    # Note: Flatpak build is optional, don't block release if it fails
+    if: always() && needs.build-linux.result == 'success' && needs.build-windows.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Linux artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: BPM-Detector-Pro-Linux
-          path: artifacts/linux
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: BPM-Detector-Pro-Windows
-          path: artifacts/windows
+          path: artifacts
 
       - name: Prepare release files
         run: |
           mkdir -p release
-          # Linux binary
-          cp artifacts/linux/BPM-Detector-Pro release/BPM-Detector-Pro-Linux-x64
-          chmod +x release/BPM-Detector-Pro-Linux-x64
-          # Windows binary
-          cp artifacts/windows/BPM-Detector-Pro.exe release/BPM-Detector-Pro-Windows-x64.exe
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Linux
+          cp artifacts/linux-builds/${{ env.APP_NAME }} release/${{ env.APP_NAME }}-Linux-x64
+          chmod +x release/${{ env.APP_NAME }}-Linux-x64
+          cp artifacts/linux-builds/*.deb release/ || true
+          cp artifacts/linux-builds/*.rpm release/ || true
+          
+          # Windows
+          cp artifacts/windows-build/${{ env.APP_NAME }}.exe release/${{ env.APP_NAME }}-Windows-x64.exe
+          
+          # macOS
+          cp artifacts/macos-build/${{ env.APP_NAME }}-macOS.dmg release/ || true
+          
+          # Flatpak (optional)
+          cp artifacts/flatpak-build/${{ env.APP_NAME }}.flatpak release/ || true
+          
+          ls -la release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -109,23 +294,52 @@ jobs:
           body: |
             ## 🎵 BPM Detector Pro ${{ github.ref_name }}
             
-            ### 📥 Téléchargement
+            Détecteur de BPM haute précision avec interface graphique moderne.
             
-            | Plateforme | Fichier | Instructions |
-            |------------|---------|--------------|
-            | 🐧 Linux | `BPM-Detector-Pro-Linux-x64` | Téléchargez, rendez exécutable (`chmod +x`), exécutez |
-            | 🪟 Windows | `BPM-Detector-Pro-Windows-x64.exe` | Téléchargez, double-cliquez pour lancer |
+            ---
+            
+            ### 📥 Téléchargements
+            
+            | Plateforme | Format | Fichier | Instructions |
+            |------------|--------|---------|--------------|
+            | 🐧 **Linux** | Binaire | `BPM-Detector-Pro-Linux-x64` | `chmod +x` puis exécutez |
+            | 🐧 **Linux** | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./fichier.deb` |
+            | 🐧 **Linux** | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./fichier.rpm` |
+            | 🐧 **Linux** | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./fichier.flatpak` |
+            | 🪟 **Windows** | EXE | `BPM-Detector-Pro-Windows-x64.exe` | Double-cliquez |
+            | 🍎 **macOS** | DMG | `BPM-Detector-Pro-macOS.dmg` | Ouvrez et glissez dans Applications |
+            
+            ---
             
             ### ✨ Fonctionnalités
-            - Détection BPM ultra-précise avec algorithme hybride
-            - Interface graphique moderne (thème sombre)
-            - FFmpeg intégré - aucune dépendance externe
-            - Portable - aucune installation requise
+            - 🎯 Détection BPM ultra-précise (algorithme hybride ACF/Beats)
+            - 🖥️ Interface graphique moderne avec thème sombre
+            - 📦 FFmpeg intégré - aucune dépendance externe
+            - 🔊 Tous formats audio supportés (MP3, FLAC, WAV, M4A, OGG...)
+            - ⚡ Portable - aucune installation requise (sauf packages)
+            
+            ---
+            
+            ### 📦 Installation par gestionnaire de paquets
+            
+            **Debian/Ubuntu (apt):**
+            ```bash
+            sudo apt install ./bpm-detector-pro_*_amd64.deb
+            ```
+            
+            **Fedora/RHEL (dnf):**
+            ```bash
+            sudo dnf install ./bpm-detector-pro-*.x86_64.rpm
+            ```
+            
+            **Flatpak:**
+            ```bash
+            flatpak install --user ./BPM-Detector-Pro.flatpak
+            ```
             
             ---
             Voir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour la documentation complète.
           files: |
-            release/BPM-Detector-Pro-Linux-x64
-            release/BPM-Detector-Pro-Windows-x64.exe
+            release/*
           draft: false
           prerelease: false
