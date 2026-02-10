@@ -227,7 +227,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/${{ env.APP_NAME }}.exe
+          path: |
+            dist/${{ env.APP_NAME }}.exe
+            dist/${{ env.APP_NAME }}/${{ env.APP_NAME }}.exe
+          if-no-files-found: error
 
   # ============================================
   # MACOS BUILD (.app + .dmg)
@@ -318,7 +321,11 @@ jobs:
           cp artifacts/linux-builds/*.rpm release/ || true
           
           # Windows
-          cp artifacts/windows-build/${{ env.APP_NAME }}.exe release/${{ env.APP_NAME }}-Windows-x64.exe
+          if [ -f "artifacts/windows-build/${{ env.APP_NAME }}.exe" ]; then
+            cp "artifacts/windows-build/${{ env.APP_NAME }}.exe" "release/${{ env.APP_NAME }}-Windows-x64.exe"
+          else
+            cp "artifacts/windows-build/${{ env.APP_NAME }}/${{ env.APP_NAME }}.exe" "release/${{ env.APP_NAME }}-Windows-x64.exe"
+          fi
           
           # macOS
           cp artifacts/macos-build/${{ env.APP_NAME }}-macOS.dmg release/ || true
