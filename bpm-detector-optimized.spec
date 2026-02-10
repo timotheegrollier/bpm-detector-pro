@@ -139,7 +139,6 @@ a = Analysis(
     runtime_hooks=[],
     excludes=EXCLUDES,
     win_no_prefer_redirects=False,
-    win_private_assemblies=True,
     cipher=block_cipher,
     noarchive=False,
 )

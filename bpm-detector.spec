@@ -58,7 +58,6 @@ a = Analysis(
     runtime_hooks=[],
     excludes=['IPython', 'matplotlib', 'notebook'], # Smaller build
     win_no_prefer_redirects=False,
-    win_private_assemblies=True,
     cipher=block_cipher,
     noarchive=False,
 )

@@ -2,7 +2,7 @@
 
 **Détecteur de BPM haute précision** — Analyse le tempo de n'importe quel fichier audio avec une précision exceptionnelle.
 
-![Version](https://img.shields.io/badge/version-1.1.2-blue)
+![Version](https://img.shields.io/badge/version-1.1.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey)
 
@@ -157,9 +157,12 @@ Ces paramètres sont optimisés pour la musique électronique (House, Techno, D&
 
 ## 📋 Changelog
 
+### v1.1.3 (Hotfix) 🚑
+- 🐛 **Build Fix**: Suppression de l'option obsolète `win_private_assemblies` (PyInstaller 6+)
+- 🐛 **Windows**: Inclusion explicite de `python3.dll` pour éviter les erreurs de runtime
+
 ### v1.1.2 (Hotfix) 🚑
-- 🐛 **Correctif Windows** : Correction du bug "python3.dll introuvable" et amélioration de la compatibilité des DLLs
-- 🔧 **Build** : Amélioration du packaging autonome pour Windows (win_private_assemblies=True)
+- 🐛 **Correctif Windows** : Tentative de correction "python3.dll introuvable" (Rollback changements build)
 
 ### v1.1.0 ⚡
 - 🚀 **Performance** : Démarrage < 2s avec "Fast Startup"
