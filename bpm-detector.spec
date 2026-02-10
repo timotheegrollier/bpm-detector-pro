@@ -40,12 +40,31 @@ binaries += collect_dynamic_libs('soundfile')
 hiddenimports += collect_submodules('librosa')
 hiddenimports += collect_submodules('soundfile')
 
-# Check for python3.dll explicitly
+# Check for python DLLs explicitly (both python3.dll and version-specific like python311.dll)
 python_dir = os.path.dirname(sys.executable)
-python3_dll = os.path.join(python_dir, 'python3.dll')
-if os.path.exists(python3_dll):
-    print(f"Found python3.dll at {python3_dll}, adding to binaries...")
-    binaries.append((python3_dll, '.'))
+base_dir = sys.base_prefix
+version_str = f"{sys.version_info.major}{sys.version_info.minor}"
+dll_names = ['python3.dll', f'python{version_str}.dll']
+
+search_paths = [
+    python_dir,
+    os.path.join(python_dir, '..'), # Common in venv
+    base_dir,
+    os.path.join(base_dir, 'DLLs'),
+    sys.prefix,
+]
+
+for dll_name in dll_names:
+    found = False
+    for path in search_paths:
+        dll_path = os.path.join(path, dll_name)
+        if os.path.exists(dll_path):
+            print(f"Found {dll_name} at {dll_path}, adding to binaries...")
+            binaries.append((dll_path, '.'))
+            found = True
+            break
+    if not found:
+        print(f"WARNING: Could not find {dll_name} in standard locations.")
 
 a = Analysis(
     ['bpm_gui.py'],
@@ -76,7 +95,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
+    upx_exclude=['vcruntime140.dll', 'python*.dll', 'libffi*.dll'],
     runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
