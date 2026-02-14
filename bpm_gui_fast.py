@@ -288,6 +288,7 @@ class BPMApp(tk.Tk):
         self._libs_loaded = False
         self._libs_failed = False
         self._libs_error = ""
+        self.selected_files: list[str] = []
         
         self._init_theme()
         self._build_ui()
@@ -533,18 +534,23 @@ class BPMApp(tk.Tk):
     
     def _browse_file(self) -> None:
         home = os.path.expanduser("~")
-        p = filedialog.askopenfilename(
+        paths = filedialog.askopenfilenames(
             title="Audio",
             initialdir=home,
             filetypes=[("Audio", "*.wav *.mp3 *.flac *.m4a *.ogg"), ("All", "*.*")]
         )
-        if p:
-            self.path_var.set(p)
+        if paths:
+            self.selected_files = list(paths)
+            if len(self.selected_files) == 1:
+                self.path_var.set(self.selected_files[0])
+            else:
+                self.path_var.set(f"{len(self.selected_files)} fichiers sélectionnés")
     
     def _browse_directory(self) -> None:
         home = os.path.expanduser("~")
         p = filedialog.askdirectory(title="Dossier", initialdir=home)
         if p:
+            self.selected_files = []
             self.path_var.set(p)
     
     def _collect_options(self) -> dict:
@@ -575,7 +581,8 @@ class BPMApp(tk.Tk):
             return
         
         path = self.path_var.get().strip()
-        if not path:
+        selected_files = [p for p in self.selected_files if p]
+        if not path and not selected_files:
             self._set_status("Aucun fichier sélectionné.", error=True)
             return
         
@@ -586,7 +593,10 @@ class BPMApp(tk.Tk):
         
         # Collect files
         files = []
-        if os.path.isdir(path):
+        if selected_files:
+            # Keep order while removing duplicates.
+            files = list(dict.fromkeys(selected_files))
+        elif os.path.isdir(path):
             exts = (".wav", ".mp3", ".flac", ".m4a", ".ogg")
             files = [os.path.join(path, f) for f in sorted(os.listdir(path)) 
                     if f.lower().endswith(exts)]

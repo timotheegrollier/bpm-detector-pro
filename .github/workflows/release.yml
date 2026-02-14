@@ -381,57 +381,44 @@ jobs:
         with:
           name: BPM Detector Pro ${{ github.ref_name }}
           body: |
-            ## 🎵 BPM Detector Pro ${{ github.ref_name }}
-            
-            **NOUVELLE VERSION OPTIMISÉE** 🚀
-            
-            - **Démarrage instantané** (< 2s)
-            - **Taille réduite** (~50 Mo)
-            - **Performance accrue**
-            
-            ---
-            
-            ### 📥 Téléchargements
-            
-            | Plateforme | Format | Fichier | Instructions |
-            |------------|--------|---------|--------------|
-            | 🐧 **Linux** | Binaire | `BPM-Detector-Pro-Linux-x64` | `chmod +x` puis exécutez |
-            | 🐧 **Linux** | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./fichier.deb` |
-            | 🐧 **Linux** | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./fichier.rpm` |
-            | 🐧 **Linux** | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./fichier.flatpak` |
-            | 🪟 **Windows** | ZIP | `BPM-Detector-Pro-Windows-x64.zip` | Décompressez, puis lancez `START-BPM-Detector-Pro.cmd` |
-            | 🍎 **macOS** | DMG | `BPM-Detector-Pro-macOS.dmg` | Ouvrez et glissez dans Applications |
-            
-            ---
-            
-            ### ✨ Fonctionnalités
-            - 🎯 Détection BPM ultra-précise (algorithme hybride ACF/Beats)
-            - 🖥️ Interface graphique moderne (Fast GUI)
-            - 📦 FFmpeg intégré - aucune dépendance externe
-            - 🔊 Tous formats audio supportés (MP3, FLAC, WAV, M4A, OGG...)
-            - ⚡ Portable - aucune installation requise
-            
-            ---
-            
-            ### 📦 Installation par gestionnaire de paquets
-            
+            ## BPM Detector Pro ${{ github.ref_name }}
+
+            This release focuses on desktop usability and packaging reliability.
+
+            ### Highlights
+            - Desktop GUI supports multi-file selection (`Fichiers...` with Ctrl/Cmd+click)
+            - Windows startup flow improved for packaged builds (`START-BPM-Detector-Pro.cmd`)
+            - Documentation updated in English
+
+            ### Downloads
+
+            | Platform | Format | File | Instructions |
+            |----------|--------|------|--------------|
+            | Linux | Binary | `BPM-Detector-Pro-Linux-x64` | Run `chmod +x` then execute |
+            | Linux | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./file.deb` |
+            | Linux | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./file.rpm` |
+            | Linux | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./file.flatpak` |
+            | Windows | ZIP | `BPM-Detector-Pro-Windows-x64.zip` | Extract all files, then run `START-BPM-Detector-Pro.cmd` |
+            | macOS | DMG | `BPM-Detector-Pro-macOS.dmg` | Open and drag to Applications |
+
+            ### Package Manager Install
+
             **Debian/Ubuntu (apt):**
             ```bash
             sudo apt install ./bpm-detector-pro_*_amd64.deb
             ```
-            
+
             **Fedora/RHEL (dnf):**
             ```bash
             sudo dnf install ./bpm-detector-pro-*.x86_64.rpm
             ```
-            
+
             **Flatpak:**
             ```bash
             flatpak install --user ./BPM-Detector-Pro.flatpak
             ```
-            
-            ---
-            Voir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour la documentation complète.
+
+            Full documentation: [README](https://github.com/${{ github.repository }}/blob/main/README.md)
           files: |
             release/*
           draft: false

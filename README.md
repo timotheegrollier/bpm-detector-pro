@@ -1,231 +1,153 @@
-# 🎵 BPM Detector Pro
+# BPM Detector Pro
 
-**Détecteur de BPM haute précision** — Analyse le tempo de n'importe quel fichier audio avec une précision exceptionnelle.
+High-precision BPM detection for audio files with a modern desktop GUI, CLI, and web UI.
 
-![Version](https://img.shields.io/badge/version-1.2.5-blue)
+![Version](https://img.shields.io/badge/version-1.3.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
-## ✨ Fonctionnalités
+## Features
 
-- 🎯 **Détection ultra-précise** : Algorithme hybride ACF/Beats avec snapping intelligent
-- 🖥️ **Interface graphique moderne** : GUI native sombre et réactive (Tkinter optimisé)
-- 💻 **Interface en ligne de commande** : Pour l'automatisation et les scripts
-- 🌐 **Interface web** : Serveur Flask pour une utilisation via navigateur
-- 📦 **Binaires portables légers** : ~50 Mo (v1.1 optimisée), aucune installation requise
-- 🔊 **Tous formats audio** : MP3, FLAC, WAV, M4A, OGG, AAC, et plus (via FFmpeg intégré)
-- 📊 **Analyse de segments** : Visualisation des variations de tempo tout au long du morceau
-- ⚡ **Démarrage instantané** : Nouveau moteur "Fast Startup" (chargement < 2s)
+- High-precision BPM detection (hybrid autocorrelation + beat analysis)
+- Fast desktop GUI startup (optimized Tkinter app)
+- Multi-file batch selection from the GUI (`Fichiers...` supports Ctrl/Cmd+click)
+- Folder analysis mode for full-library scans
+- CLI mode for automation and scripting
+- Web UI (Flask) for browser-based usage
+- Portable binaries with bundled FFmpeg (no system FFmpeg required in release artifacts)
+- Supports common formats: MP3, FLAC, WAV, M4A, OGG, AAC, and more
 
-## 🚀 Installation Rapide
+## Quick Start
 
-### Option 1 : Binaire Portable (Recommandé)
+### Option 1: Portable Binaries (Recommended)
 
-Téléchargez le binaire directement depuis les [Releases GitHub](../../releases) :
-- **Linux** : `BPM-Detector-Pro` (exécutable directement)
-- **Windows** : `BPM-Detector-Pro-Windows-x64.zip` (décompressez puis lancez)
-- **macOS** : `BPM-Detector-Pro-macOS.dmg`
+Download artifacts from [GitHub Releases](../../releases):
 
-Aucune installation requise — c'est portable !
+- Linux: `BPM-Detector-Pro-Linux-x64`
+- Windows: `BPM-Detector-Pro-Windows-x64.zip`
+- macOS: `BPM-Detector-Pro-macOS.dmg`
 
-> **Compatibilité** : chaque binaire est spécifique à son OS. Le ZIP Windows ne fonctionne pas sur Linux/macOS.
-> **Windows (important)** : dézippez **tout** le dossier, puis lancez `START-BPM-Detector-Pro.cmd` (recommandé) ou `BPM-Detector-Pro.exe`. Ne déplacez pas l'exe seul sans `_internal`.  
-> **Note sécurité** : un exécutable non signé peut afficher un avertissement SmartScreen. Pour une distribution publique, signez l'exe (Authenticode). Voir BUILDING.md.
+Windows note:
 
-### Option 2 : Depuis les Sources
+- Extract the full ZIP folder before launching.
+- Start with `START-BPM-Detector-Pro.cmd` (recommended) or `BPM-Detector-Pro.exe`.
+- Do not move only the `.exe` without the `_internal` directory.
+
+### Option 2: Run from Source
 
 ```bash
-# Cloner le repo
-git clone https://github.com/VOTRE_USER/bpm-detector.git
+git clone https://github.com/YOUR_USER/bpm-detector.git
 cd bpm-detector
 
-# Créer un environnement virtuel
 python -m venv .venv
 source .venv/bin/activate  # Linux/macOS
-# ou: .venv\Scripts\activate  # Windows
+# or: .venv\Scripts\activate  # Windows
 
-# Installer les dépendances
 pip install -r requirements.txt
 ```
 
-> **Note** : FFmpeg doit être installé sur votre système pour l'utilisation depuis les sources.
+If running from source, make sure FFmpeg is installed or available through `FFMPEG_BINARY` / `FFMPEG_PATH`.
 
-## 📖 Utilisation
+## Usage
 
-### Interface Graphique (GUI)
+### Desktop GUI
 
 ```bash
 python bpm_gui.py
-# ou lancez directement le binaire : ./BPM-Detector-Pro
+# or use packaged binary
 ```
 
-Une fenêtre s'ouvre avec :
-- Bouton pour sélectionner un fichier audio
-- Options de configuration (sample rate, durée, etc.)
-- Affichage du BPM détecté et confiance
-- Graphique des segments de tempo
+GUI workflow:
 
-### Ligne de Commande (CLI)
+- `Fichiers...`: pick one or many files (Ctrl/Cmd+click)
+- `Dossier...`: analyze all supported audio files in one folder
+- `LANCER L'ANALYSE`: run batch analysis and monitor progress
+
+### CLI
 
 ```bash
-python bpm_detect.py fichier_audio.mp3
+python bpm_detect.py track.mp3
 ```
 
-**Options disponibles :**
+Common options:
 
-| Option | Description | Défaut |
-|--------|-------------|--------|
-| `--start N` | Début de l'analyse (secondes) | 0 |
-| `--duration N` | Durée à analyser (secondes) | fichier entier |
-| `--sr N` | Sample rate d'analyse | 22050 |
-| `--hop-length N` | Précision (plus petit = plus précis mais plus lent) | 96 |
-| `--min-bpm N` | BPM minimum | 60 |
-| `--max-bpm N` | BPM maximum | 200 |
-| `--no-hpss` | Désactive la séparation percussive | off |
-| `--no-snap` | Désactive le snapping automatique | off |
-| `--json` | Sortie au format JSON | off |
-| `--variations` | Affiche les variations de tempo | off |
+| Option | Description | Default |
+|---|---|---|
+| `--start N` | Analysis start offset (seconds) | `0` |
+| `--duration N` | Analysis duration (seconds) | Full file |
+| `--sr N` | Analysis sample rate | `22050` |
+| `--hop-length N` | Time precision (smaller = more precise, slower) | `96` |
+| `--min-bpm N` | Minimum BPM | `60` |
+| `--max-bpm N` | Maximum BPM | `200` |
+| `--no-hpss` | Disable percussive separation | Off |
+| `--no-snap` | Disable intelligent BPM snapping | Off |
+| `--json` | JSON output | Off |
+| `--variations` | Show tempo variations | Off |
 
-**Exemples :**
+Examples:
 
 ```bash
-# Analyse basique
-python bpm_detect.py ma_track.mp3
-
-# Analyse de 60 secondes à partir de 30s
-python bpm_detect.py ma_track.mp3 --start 30 --duration 60
-
-# Sortie JSON pour scripting
-python bpm_detect.py ma_track.mp3 --json
-
-# Haute précision pour tracks rapides (D&B, Jungle)
+python bpm_detect.py my_track.mp3
+python bpm_detect.py my_track.mp3 --start 30 --duration 60
+python bpm_detect.py my_track.mp3 --json
 python bpm_detect.py dnb_track.flac --min-bpm 140 --max-bpm 190 --hop-length 64
 ```
 
-### Interface Web
+### Web UI
 
 ```bash
 python app.py
 ```
 
-Ouvrez `http://127.0.0.1:5000` dans votre navigateur.
+Then open `http://127.0.0.1:5000`.
 
-## 🔧 Build des Binaires
+## Build
 
-### Linux
+See [BUILDING.md](BUILDING.md) for full build and packaging instructions.
+
+Quick commands:
 
 ```bash
-# Place FFmpeg dans packaging/ffmpeg/linux/ffmpeg
+# Linux
 ./scripts/build_linux.sh
-# Résultat : dist/BPM-Detector-Pro
 ```
-
-### Windows
 
 ```powershell
-# Place FFmpeg dans packaging/ffmpeg/windows/ffmpeg.exe
+# Windows
 .\scripts\build_windows.ps1
-# Résultat : dist/BPM-Detector-Pro\ + dist/BPM-Detector-Pro-Windows-x64.zip
 ```
 
-Consultez [BUILDING.md](BUILDING.md) pour plus de détails.
+## Project Layout
 
-## 🗂️ Structure du Projet
-
-```
-bpm/
-├── bpm_gui.py          # Interface graphique (Qt)
-├── bpm_detector.py     # Moteur de détection (logique métier)
-├── bpm_detect.py       # Interface CLI
-├── app.py              # Serveur web Flask
-├── requirements.txt    # Dépendances Python
-├── bpm-detector.spec   # Configuration PyInstaller
-├── scripts/
-│   ├── build_linux.sh      # Build Linux
-│   ├── build_windows.ps1   # Build Windows
-│   └── build_appimage.sh   # Build AppImage
-├── packaging/
-│   └── ffmpeg/             # Binaires FFmpeg par plateforme
-├── static/                 # Assets web (CSS)
-└── templates/              # Templates HTML (Flask)
+```text
+bpm-detector/
+├── bpm_gui.py                  # Desktop GUI (full mode)
+├── bpm_gui_fast.py             # Desktop GUI (fast startup mode)
+├── bpm_detector.py             # Core BPM detection engine
+├── bpm_detect.py               # CLI
+├── app.py                      # Flask web app
+├── scripts/                    # Build scripts
+├── packaging/                  # Packaging assets and ffmpeg locations
+├── static/                     # Web static assets
+└── templates/                  # Web templates
 ```
 
-## ⚙️ Calibration & Précision
+## Changelog
 
-Le moteur de détection utilise :
-- **Sample Rate** : 22050 Hz (équilibre précision/performance)
-- **Hop Length** : 96 (haute précision temporelle)
-- **Snapping** : Arrondi intelligent vers les BPM courants (±0.5 BPM)
-- **Analyse** : Jusqu'à 90 secondes à partir du début du drop
+### v1.3.1
 
-Ces paramètres sont optimisés pour la musique électronique (House, Techno, D&B) mais fonctionnent excellemment sur tous les genres.
+- Added multi-file selection in desktop GUI file picker (`Ctrl/Cmd+click`)
+- Updated docs and release notes to English
+- Version bump and release metadata refresh
 
-## 📋 Changelog
+### v1.2.8
 
-### v1.2.5 (Release) ✅
-- 🐧 **Linux** : build fiable (UPX/strip désactivés par défaut)
-- 🧠 **NumPy/OpenBLAS** : fin des erreurs `ELF load command address/offset not page-aligned`
+- Windows startup reliability improvements for packaged executable
 
-### v1.2.4 (Release) ✅
-- 🐧 **Linux** : correction du crash NumPy/OpenBLAS (`ELF load command address/offset not page-aligned`)
-- 📦 **Build** : UPX/strip désactivés sur Linux pour stabilité
+### v1.2.5
 
-### v1.2.3 (Release) ✅
-- 📋 **Logs copiables** dans l'application
-- 🧯 **Erreurs d'init claires** (numpy C-extensions) en rouge + détails
+- Linux packaging stability improvements (NumPy/OpenBLAS alignment issues)
 
-### v1.2.1 (Release) ✅
-- 🎵 **BPM Detector Pro v1.2.1**
-- 🚀 **NOUVELLE VERSION OPTIMISÉE**
-- ⚡ **Démarrage instantané** (< 2s)
-- 📦 **Taille réduite** (~50 Mo)
-- 🧠 **Performance accrue**
+## License
 
-### v1.1.3 (Hotfix) 🚑
-- 🐛 **Build Fix**: Suppression de l'option obsolète `win_private_assemblies` (PyInstaller 6+)
-- 🐛 **Windows**: Inclusion explicite de `python3.dll` pour éviter les erreurs de runtime
-
-### v1.1.2 (Hotfix) 🚑
-- 🐛 **Correctif Windows** : Tentative de correction "python3.dll introuvable" (Rollback changements build)
-
-### v1.1.0 ⚡
-- 🚀 **Performance** : Démarrage < 2s avec "Fast Startup"
-- 📉 **Taille** : Binaire réduit de 150 Mo à ~50 Mo
-- 🧠 **Optimisation** : Lazy loading des modules et exclusions agressives
-
-### v1.0.0 (Initial) 🎉
-- ✅ Détection BPM avec algorithme hybride ACF/Beats
-- ✅ Interface graphique Qt avec thème sombre
-- ✅ Interface CLI complète avec options avancées
-- ✅ Support de tous les formats audio courants (via FFmpeg)
-- ✅ Analyse de segments avec visualisation
-- ✅ Snapping intelligent vers BPM entiers
-
-### Build & Packaging
-- ✅ Build Linux natif (binaire portable)
-- ✅ Build Windows natif (.exe portable)
-- ✅ Scripts de build automatisés
-- ✅ FFmpeg intégré dans les binaires
-- ✅ Processus isolé pour la stabilité
-
-### Qualité
-- ✅ Calibration précise testée sur D&B (175 BPM), House (128 BPM), etc.
-- ✅ Gestion des erreurs robuste
-- ✅ Logs de débogage optionnels
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## 🤝 Contribution
-
-Les contributions sont les bienvenues ! N'hésitez pas à :
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/amazing-feature`)
-3. Commit vos changements (`git commit -m 'Add amazing feature'`)
-4. Push la branche (`git push origin feature/amazing-feature`)
-5. Ouvrir une Pull Request
-
----
-
-**Made with ❤️ for DJs and music producers**
+This project is released under the MIT License. See [LICENSE](LICENSE).

@@ -1,105 +1,120 @@
-# Guide de Build - BPM Detector Pro
+# Build Guide - BPM Detector Pro
 
-Ce projet utilise **PyInstaller** pour créer des exécutables autonomes.
+This project uses PyInstaller to generate standalone desktop binaries.
 
-## 🚀 Build Optimisé (Recommandé)
+## Recommended Build Path
 
-Le build optimisé produit un exécutable **~50 MB** au lieu de 150 MB, avec un démarrage **3-5x plus rapide**.
+Use the optimized build pipeline by default. It delivers smaller artifacts and faster startup.
 
-### Windows - Build Optimisé
+### Windows (optimized)
+
 ```powershell
-# Depuis le dossier scripts/
-.\build_windows.ps1
-
-# Output:
-# - dist\BPM-Detector-Pro\                  (dossier ONEDIR)
-# - dist\BPM-Detector-Pro-Windows-x64.zip   (archive de release)
+.\scripts\build_windows.ps1
 ```
-Par défaut, le build Windows utilise **ONEDIR** (exe + `_internal`) pour réduire les erreurs de chargement DLL.
-Un ZIP de release est généré automatiquement : `dist\BPM-Detector-Pro-Windows-x64.zip`.
 
-Le script synchronise automatiquement la version de l'app depuis le **dernier tag git** (ex: `v1.1.4`).
-Vous pouvez forcer une version : `set APP_VERSION=1.1.4` avant de lancer le build.
+Outputs:
 
-### Linux - Build Optimisé
+- `dist\BPM-Detector-Pro\` (ONEDIR folder)
+- `dist\BPM-Detector-Pro-Windows-x64.zip` (release archive)
+
+Notes:
+
+- Windows build uses ONEDIR by default to reduce DLL startup/runtime issues.
+- A release ZIP is generated automatically.
+- The script syncs app version from the latest Git tag (example: `v1.3.1`).
+- You can override the version: `set APP_VERSION=1.3.1` before running the build.
+
+### Linux (optimized)
+
 ```bash
-pip install pyinstaller
-pyinstaller bpm-detector-optimized.spec --clean
-
-# Output: dist/BPM-Detector-Pro (~45 MB)
+./scripts/build_linux.sh
 ```
-Le script `scripts/build_linux.sh` synchronise aussi la version depuis le tag git.
 
-## 📦 Build Classique (Full librosa)
+Output:
 
-Si vous avez besoin de toutes les fonctionnalités de librosa (précision maximale) :
+- `dist/BPM-Detector-Pro`
+
+The Linux script also syncs version from the latest Git tag.
+
+## Classic Build (full librosa profile)
+
+If you need the non-optimized/full profile:
 
 ### Windows
+
 ```powershell
 $env:USE_LEGACY_BUILD = "1"
 .\scripts\build_windows.ps1
 ```
 
 ### Linux
+
 ```bash
 pyinstaller bpm-detector.spec --clean
 ```
 
-## ⚙️ Prérequis
+## Prerequisites
 
-1. **FFmpeg** - Placez le binaire dans :
-   - Windows: `packaging/ffmpeg/windows/ffmpeg.exe`
-   - Linux: `packaging/ffmpeg/linux/ffmpeg`
-   
-2. **Dépendances Python** :
+1. FFmpeg binary in expected location:
+
+- Windows: `packaging/ffmpeg/windows/ffmpeg.exe`
+- Linux: `packaging/ffmpeg/linux/ffmpeg`
+- macOS: `packaging/ffmpeg/macos/ffmpeg` (if building macOS)
+
+2. Python dependencies:
+
 ```bash
-# Build minimal (léger, sans SciPy)
+# Minimal/optimized profile
 pip install -r requirements-minimal.txt pyinstaller
 
-# Build complet (avec librosa)
+# Full profile
 pip install -r requirements.txt pyinstaller
 ```
 
-## 🔧 Optimisations Appliquées
+## Applied Optimizations
 
-| Optimisation | Gain |
-|--------------|------|
-| Lazy-loading des librairies | Démarrage ~3x plus rapide |
-| Exclusions agressives (numba, matplotlib, etc.) | -60 MB |
-| Compression UPX | -30% taille |
-| Analyse limitée à 45s par défaut | CPU réduit |
-| Mode single-thread (pas de fork) | Startup instantané |
+| Optimization | Impact |
+|---|---|
+| Lazy-loading heavy libraries | Faster cold startup |
+| Aggressive optional-module exclusion | Smaller bundles |
+| Limited default analysis window | Lower CPU cost |
+| ONEDIR default on Windows | Better runtime reliability |
 
-## 📊 Comparaison des Builds
+## Troubleshooting
 
-| Métrique | Build Classique | Build Optimisé |
-|----------|-----------------|----------------|
-| Taille | ~150 MB | ~50 MB |
-| Temps démarrage (cold) | 8-15s | 2-5s |
-| Temps démarrage (warm) | 3-5s | <1s |
-| Précision BPM | 100% | ~98% |
+### "FFmpeg not found"
 
-## ❓ Dépannage
+- Download FFmpeg from https://ffmpeg.org/download.html
+- Put the binary in the expected path above
+- Or set `FFMPEG_BINARY` / `FFMPEG_PATH` to a valid executable path
 
-### "FFmpeg introuvable"
-Téléchargez depuis https://ffmpeg.org/download.html et placez le binaire au bon endroit.
+### Windows SmartScreen / Defender warnings
 
-### Avertissements Windows Defender / SmartScreen
-- Les exécutables **non signés** peuvent déclencher SmartScreen (éditeur inconnu) jusqu'à ce qu'une réputation soit établie.
-- Le build Windows publie **ONEDIR** (ZIP) pour limiter les faux positifs et les erreurs de chargement DLL.
-- **UPX** peut augmenter les détections heuristiques. Le build Windows **désactive UPX par défaut**.
-  - Pour activer la compression : `set USE_UPX=1` puis relancez `.\scripts\build_windows.ps1`
-- Pour une distribution professionnelle, **signez** l'exécutable (Authenticode) et ajoutez un horodatage. Un certificat EV accélère la réputation.
+- Unsigned executables can trigger warnings.
+- Keep ONEDIR packaging and avoid moving only the `.exe` file.
+- Sign the executable (Authenticode) for production distribution.
 
-### Build trop lent
-- Utilisez le build optimisé (`requirements-minimal.txt` + `bpm-detector-optimized.spec`) pour réduire significativement le temps de build.
+### App starts slowly on Windows
 
-### L'app démarre lentement sur Windows
-- Antivirus qui scanne le .exe → Ajoutez une exception
-- Premier démarrage (cache) → Le 2ème lancement sera plus rapide
+- Antivirus may scan executable/runtime DLLs on first launch.
+- Add an exclusion for the extracted app folder if needed.
+- Subsequent launches are typically faster.
 
-### "python311.dll / python3.dll introuvable"
-- Assurez-vous d'avoir **dézippé tout le dossier** `BPM-Detector-Pro` et de lancer l'exe depuis ce dossier.
-- Lancez `START-BPM-Detector-Pro.cmd` (il enlève les blocages "fichier téléchargé" avant de démarrer l'exe).
-- Si l'erreur persiste : réparez/installez `Microsoft Visual C++ Redistributable 2015-2022 (x64)`.
-- Le script de build vérifie désormais la présence de `pythonXY.dll`, `vcruntime140.dll` et `vcruntime140_1.dll` dans `_internal`, et inclut `msvcp140.dll` en best-effort.
+### "python311.dll" or "python3.dll" missing
+
+- Extract the full ZIP folder.
+- Launch `START-BPM-Detector-Pro.cmd`.
+- If needed, install/repair `Microsoft Visual C++ Redistributable 2015-2022 (x64)`.
+
+## Release CI
+
+GitHub Actions release workflow runs on pushed tags matching `v*`.
+
+Example:
+
+```bash
+git tag v1.3.1
+git push origin master --tags
+```
+
+That tag push builds Linux/Windows/macOS artifacts and publishes the release.
