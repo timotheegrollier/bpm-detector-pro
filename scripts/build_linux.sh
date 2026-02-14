@@ -73,12 +73,12 @@ if [ "$USE_OPTIMIZED" = true ]; then
   fi
 fi
 
-# Download UPX if optimized mode is on
+# UPX (optional). Disabled by default on Linux to avoid breaking shared libs.
 UPX_ARGS=""
-if [ "$USE_OPTIMIZED" = true ]; then
+if [ "${USE_UPX:-0}" = "1" ]; then
   UPX_DIR="$ROOT/tools/upx-linux"
   UPX_BIN="$UPX_DIR/upx"
-  
+
   if [ ! -f "$UPX_BIN" ]; then
     echo "Downloading UPX for Linux..."
     mkdir -p "$UPX_DIR"
@@ -89,7 +89,7 @@ if [ "$USE_OPTIMIZED" = true ]; then
     chmod +x "$UPX_BIN"
     echo "UPX installed."
   fi
-  
+
   if [ -f "$UPX_BIN" ]; then
     UPX_ARGS="--upx-dir=$UPX_DIR"
     echo "Using UPX compression."
@@ -105,11 +105,13 @@ pyinstaller --noconfirm --clean \
   $UPX_ARGS \
   "$SPEC_FILE"
 
-# Post-processing optimization
+# Post-processing optimization (strip disabled by default on Linux)
 OUTPUT_BIN="$ROOT/dist/BPM-Detector-Pro"
 if [ -f "$OUTPUT_BIN" ] && [ "$USE_OPTIMIZED" = true ]; then
-  echo "Stripping binary symbols..."
-  strip -s "$OUTPUT_BIN" || true
+  if [ "${USE_STRIP:-0}" = "1" ]; then
+    echo "Stripping binary symbols..."
+    strip -s "$OUTPUT_BIN" || true
+  fi
   
   SIZE=$(du -h "$OUTPUT_BIN" | cut -f1)
   echo "Final Binary Size: $SIZE"

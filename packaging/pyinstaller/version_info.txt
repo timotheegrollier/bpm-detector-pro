@@ -3,8 +3,8 @@
 # Windows version info for PyInstaller
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 2, 4, 0),
-    prodvers=(1, 2, 4, 0),
+    filevers=(1, 2, 5, 0),
+    prodvers=(1, 2, 5, 0),
     mask=0x3F,
     flags=0x0,
     OS=0x40004,
@@ -19,12 +19,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName', 'BPM Detector Pro'),
           StringStruct('FileDescription', 'BPM Detector Pro'),
-          StringStruct('FileVersion', '1.2.4'),
+          StringStruct('FileVersion', '1.2.5'),
           StringStruct('InternalName', 'BPM-Detector-Pro'),
           StringStruct('LegalCopyright', 'Copyright (c) 2026'),
           StringStruct('OriginalFilename', 'BPM-Detector-Pro.exe'),
           StringStruct('ProductName', 'BPM Detector Pro'),
-          StringStruct('ProductVersion', '1.2.4'),
+          StringStruct('ProductVersion', '1.2.5'),
         ]
       )
     ]),
