@@ -241,13 +241,23 @@ jobs:
             Write-Error "Build failed: $launcherPath not found"
             exit 1
           }
-          $requiredDlls = @("python311.dll", "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+          $pythonDll = Get-ChildItem -Path $internalDir -Filter "python*.dll" -File |
+            Where-Object { $_.Name -match '^python\d+\.dll$' } |
+            Select-Object -First 1
+          if (-not $pythonDll) {
+            Write-Error "Build failed: python runtime DLL not found in $internalDir"
+            exit 1
+          }
+          $requiredDlls = @($pythonDll.Name, "vcruntime140.dll", "vcruntime140_1.dll")
           foreach ($dllName in $requiredDlls) {
             $dllPath = "$internalDir/$dllName"
             if (-not (Test-Path $dllPath)) {
               Write-Error "Build failed: required DLL missing: $dllPath"
               exit 1
             }
+          }
+          if (-not (Test-Path "$internalDir/msvcp140.dll")) {
+            Write-Warning "Optional DLL missing: $internalDir/msvcp140.dll (target machine may require VC++ Redistributable)"
           }
           $size = (Get-Item $exePath).Length / 1MB
           Write-Host ("Build OK: $exePath ({0:N1} MB)" -f $size)

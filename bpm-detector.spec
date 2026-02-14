@@ -206,17 +206,27 @@ def _add_windows_runtime_dlls(binaries_list):
         return
 
     runtime_dlls = ['vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll']
+    system_root = os.environ.get('SystemRoot', r'C:\Windows')
     search_paths = [
         os.path.dirname(sys.executable),
         sys.base_prefix,
         os.path.join(sys.base_prefix, 'DLLs'),
         sys.prefix,
         os.path.join(sys.prefix, 'DLLs'),
+        os.path.join(system_root, 'System32'),
+        os.path.join(system_root, 'SysWOW64'),
     ]
+
+    env_path = os.environ.get('PATH')
+    if env_path:
+        search_paths.extend(env_path.split(os.pathsep))
 
     # De-duplicate paths, keep order
     seen = set()
-    search_paths = [p for p in search_paths if p and not (p in seen or seen.add(p))]
+    search_paths = [
+        os.path.abspath(p) for p in search_paths
+        if p and os.path.isdir(p) and not (os.path.abspath(p) in seen or seen.add(os.path.abspath(p)))
+    ]
 
     for dll_name in runtime_dlls:
         found = False
@@ -228,6 +238,18 @@ def _add_windows_runtime_dlls(binaries_list):
                     binaries_list.append((dll_path, '.'))
                 found = True
                 break
+        if not found:
+            redist_roots = [os.environ.get('ProgramFiles'), os.environ.get('ProgramFiles(x86)')]
+            for root in redist_roots:
+                if not root or not os.path.isdir(root):
+                    continue
+                matches = glob.glob(os.path.join(root, '**', dll_name), recursive=True)
+                if matches:
+                    dll_path = matches[0]
+                    print(f"Adding Windows runtime DLL (recursive fallback): {dll_path}")
+                    binaries_list.append((dll_path, '.'))
+                    found = True
+                    break
         if not found:
             print(f"WARNING: Could not find {dll_name}. Target system may require VC++ Redistributable.")
 

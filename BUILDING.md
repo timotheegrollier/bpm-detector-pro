@@ -102,4 +102,4 @@ Téléchargez depuis https://ffmpeg.org/download.html et placez le binaire au bo
 - Assurez-vous d'avoir **dézippé tout le dossier** `BPM-Detector-Pro` et de lancer l'exe depuis ce dossier.
 - Lancez `START-BPM-Detector-Pro.cmd` (il enlève les blocages "fichier téléchargé" avant de démarrer l'exe).
 - Si l'erreur persiste : réparez/installez `Microsoft Visual C++ Redistributable 2015-2022 (x64)`.
-- Le script de build vérifie désormais la présence de `pythonXY.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` et `msvcp140.dll` dans `_internal`.
+- Le script de build vérifie désormais la présence de `pythonXY.dll`, `vcruntime140.dll` et `vcruntime140_1.dll` dans `_internal`, et inclut `msvcp140.dll` en best-effort.

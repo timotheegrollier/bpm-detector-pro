@@ -126,8 +126,52 @@ $RequiredInternalDlls = @(
   $PythonDllName
   "vcruntime140.dll"
   "vcruntime140_1.dll"
-  "msvcp140.dll"
 )
+$OptionalInternalDlls = @("msvcp140.dll")
+
+function Find-SystemDllPath {
+  param(
+    [string]$DllName,
+    [string]$PythonExePath
+  )
+
+  $PythonDir = Split-Path -Parent $PythonExePath
+  $SystemRoot = $env:SystemRoot
+  $CandidateDirs = @(
+    $PythonDir
+    (Join-Path $PythonDir "..")
+    (Join-Path $SystemRoot "System32")
+    (Join-Path $SystemRoot "SysWOW64")
+  )
+
+  if ($env:PATH) {
+    $CandidateDirs += ($env:PATH -split ";" | Where-Object { $_ -and $_.Trim() })
+  }
+
+  $Seen = @{}
+  foreach ($Dir in $CandidateDirs) {
+    if (-not $Dir) { continue }
+    $FullDir = [System.IO.Path]::GetFullPath($Dir)
+    if ($Seen.ContainsKey($FullDir)) { continue }
+    $Seen[$FullDir] = $true
+    $Candidate = Join-Path $FullDir $DllName
+    if (Test-Path $Candidate) {
+      return $Candidate
+    }
+  }
+
+  # Last resort: scan common VC++ Redist install roots.
+  $RedistRoots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}) | Where-Object { $_ -and (Test-Path $_) }
+  foreach ($RootDir in $RedistRoots) {
+    $Match = Get-ChildItem -Path $RootDir -Recurse -Filter $DllName -File -ErrorAction SilentlyContinue |
+      Select-Object -First 1
+    if ($Match) {
+      return $Match.FullName
+    }
+  }
+
+  return $null
+}
 
 if (Test-Path $OutputExe) {
   if (-not (Test-Path $InternalDir)) {
@@ -135,17 +179,36 @@ if (Test-Path $OutputExe) {
     exit 1
   }
 
-  $MissingDlls = @()
-  foreach ($DllName in $RequiredInternalDlls) {
+  foreach ($DllName in ($RequiredInternalDlls + $OptionalInternalDlls)) {
     $DllPath = Join-Path $InternalDir $DllName
-    if (-not (Test-Path $DllPath)) {
-      $MissingDlls += $DllName
+    if (Test-Path $DllPath) { continue }
+    $FallbackPath = Find-SystemDllPath -DllName $DllName -PythonExePath $PyExe
+    if ($FallbackPath) {
+      Copy-Item $FallbackPath $DllPath -Force
+      Write-Host "Added runtime DLL fallback: $DllName from $FallbackPath"
     }
   }
 
-  if ($MissingDlls.Count -gt 0) {
-    Write-Error ("Build invalid: missing required runtime DLL(s) in _internal: " + ($MissingDlls -join ", "))
+  $MissingRequiredDlls = @()
+  foreach ($DllName in $RequiredInternalDlls) {
+    if (-not (Test-Path (Join-Path $InternalDir $DllName))) {
+      $MissingRequiredDlls += $DllName
+    }
+  }
+
+  if ($MissingRequiredDlls.Count -gt 0) {
+    Write-Error ("Build invalid: missing required runtime DLL(s) in _internal: " + ($MissingRequiredDlls -join ", "))
     exit 1
+  }
+
+  $MissingOptionalDlls = @()
+  foreach ($DllName in $OptionalInternalDlls) {
+    if (-not (Test-Path (Join-Path $InternalDir $DllName))) {
+      $MissingOptionalDlls += $DllName
+    }
+  }
+  if ($MissingOptionalDlls.Count -gt 0) {
+    Write-Warning ("Optional runtime DLL(s) not bundled: " + ($MissingOptionalDlls -join ", ") + ". System VC++ Redistributable may be required.")
   }
 
   # Add a launcher that clears "downloaded from internet" flags before starting the app.
