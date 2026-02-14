@@ -194,7 +194,7 @@ jobs:
           path: ${{ env.APP_NAME }}.flatpak
 
   # ============================================
-  # WINDOWS BUILD
+  # WINDOWS BUILD (single .exe, no ZIP needed)
   # ============================================
   build-windows:
     runs-on: windows-latest
@@ -219,42 +219,32 @@ jobs:
           $ffmpegExe = Get-ChildItem -Path ffmpeg-extract -Recurse -Name ffmpeg.exe | Select-Object -First 1
           Copy-Item "ffmpeg-extract/$ffmpegExe" packaging/ffmpeg/windows/ffmpeg.exe
 
-      - name: Build Windows binary (onedir mode - avoids antivirus DLL blocks)
+      - name: Build Windows single-file EXE
         env:
-          USE_ONEDIR: '1'
+          USE_ONEDIR: '0'
           CREATE_ZIP: '0'
         run: |
           .\scripts\build_windows.ps1
 
       - name: Verify build output
         run: |
-          $onedirExe = "dist/${{ env.APP_NAME }}/${{ env.APP_NAME }}.exe"
-          if (-not (Test-Path $onedirExe)) {
-            Write-Error "Build failed: $onedirExe not found"
+          $exePath = "dist/${{ env.APP_NAME }}.exe"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Build failed: $exePath not found"
             exit 1
           }
-          $size = (Get-Item $onedirExe).Length / 1MB
-          Write-Host ("Build OK: $onedirExe ({0:N1} MB)" -f $size)
-          # Verify python DLLs are present in the directory
-          $dllCount = (Get-ChildItem "dist/${{ env.APP_NAME }}" -Filter "python*.dll" | Measure-Object).Count
-          Write-Host "Python DLLs found: $dllCount"
-          if ($dllCount -eq 0) {
-            Write-Error "No Python DLLs found in output directory!"
-            exit 1
-          }
+          $size = (Get-Item $exePath).Length / 1MB
+          Write-Host ("Build OK: $exePath ({0:N1} MB)" -f $size)
 
-      - name: Package Windows build as ZIP
+      - name: Rename for release
         run: |
-          Compress-Archive -Path "dist/${{ env.APP_NAME }}/*" -DestinationPath "dist/${{ env.APP_NAME }}-Windows-x64.zip" -Force
-          $zipSize = (Get-Item "dist/${{ env.APP_NAME }}-Windows-x64.zip").Length / 1MB
-          Write-Host ("ZIP created: dist/${{ env.APP_NAME }}-Windows-x64.zip ({0:N1} MB)" -f $zipSize)
+          Copy-Item "dist/${{ env.APP_NAME }}.exe" "dist/${{ env.APP_NAME }}-Windows-x64.exe"
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: |
-            dist/${{ env.APP_NAME }}-Windows-x64.zip
+          path: dist/${{ env.APP_NAME }}-Windows-x64.exe
           if-no-files-found: error
 
   # ============================================
@@ -345,8 +335,8 @@ jobs:
           cp artifacts/linux-builds/*.deb release/ || true
           cp artifacts/linux-builds/*.rpm release/ || true
           
-          # Windows (onedir ZIP - more reliable than onefile)
-          cp "artifacts/windows-build/${{ env.APP_NAME }}-Windows-x64.zip" "release/${{ env.APP_NAME }}-Windows-x64.zip"
+          # Windows (single .exe)
+          cp "artifacts/windows-build/${{ env.APP_NAME }}-Windows-x64.exe" "release/${{ env.APP_NAME }}-Windows-x64.exe"
           
           # macOS
           cp artifacts/macos-build/${{ env.APP_NAME }}-macOS.dmg release/ || true
@@ -379,7 +369,7 @@ jobs:
             | 🐧 **Linux** | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./fichier.deb` |
             | 🐧 **Linux** | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./fichier.rpm` |
             | 🐧 **Linux** | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./fichier.flatpak` |
-            | 🪟 **Windows** | ZIP | `BPM-Detector-Pro-Windows-x64.zip` | Dézippez → double-clic sur `BPM-Detector-Pro.exe` |
+            | 🪟 **Windows** | EXE | `BPM-Detector-Pro-Windows-x64.exe` | Double-clic pour lancer |
             | 🍎 **macOS** | DMG | `BPM-Detector-Pro-macOS.dmg` | Ouvrez et glissez dans Applications |
             
             ---

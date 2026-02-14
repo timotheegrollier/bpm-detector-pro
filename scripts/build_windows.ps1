@@ -16,17 +16,9 @@ if ($UseOptimized) {
   Write-Host "Mode: Legacy (full librosa)" -ForegroundColor Yellow
 }
 
-$UseOnedirRaw = $env:USE_ONEDIR
-if (-not $UseOnedirRaw) { $UseOnedirRaw = "0" }
-$UseOnedir = $UseOnedirRaw.ToLower() -in @("1", "true", "yes", "y")
-if ($UseOnedir) {
-  Write-Host "Layout: ONEDIR (lower SmartScreen/Defender heuristics)" -ForegroundColor Green
-} else {
-  Write-Host "Layout: ONEFILE (single file distribution)" -ForegroundColor Yellow
-}
-
-# Ensure spec file sees the same layout choice
-$env:USE_ONEDIR = if ($UseOnedir) { "1" } else { "0" }
+# Always use onefile mode with runtime_tmpdir='.' to avoid Windows Defender DLL issues
+Write-Host "Layout: ONEFILE (single .exe, DLLs extracted next to exe)" -ForegroundColor Green
+$env:USE_ONEDIR = "0"
 
 if (-not (Test-Path $Venv)) {
   Write-Host "Creating virtual environment..."
@@ -35,79 +27,6 @@ if (-not (Test-Path $Venv)) {
 
 $PyExe = Join-Path $Venv "Scripts\python.exe"
 $PyInstaller = Join-Path $Venv "Scripts\pyinstaller.exe"
-
-function Get-PythonDllInfo {
-  param([string]$PyExePath)
-
-  $PyCode = @'
-import sys, sysconfig, os, json, glob
-ver = f"{sys.version_info.major}{sys.version_info.minor}"
-names = [f"python{ver}.dll", "python3.dll"]
-
-found = []
-
-# Env overrides
-env_dll = os.environ.get("PYTHON_DLL")
-if env_dll:
-    for raw in env_dll.split(os.pathsep):
-        raw = raw.strip().strip('"')
-        if raw and os.path.exists(raw):
-            found.append(raw)
-
-env_dir = os.environ.get("PYTHON_DLL_DIR")
-
-# sysconfig hints
-cfg_pydll = sysconfig.get_config_var("pythondll")
-if cfg_pydll:
-    if os.path.isabs(cfg_pydll) and os.path.exists(cfg_pydll):
-        found.append(cfg_pydll)
-    else:
-        if cfg_pydll not in names:
-            names.append(cfg_pydll)
-
-python_dir = os.path.dirname(sys.executable)
-base_dir = sys.base_prefix
-search_paths = [
-    python_dir,
-    os.path.abspath(os.path.join(python_dir, "..")),
-    base_dir,
-    os.path.join(base_dir, "DLLs"),
-    sys.prefix,
-    os.path.join(sys.prefix, "DLLs"),
-]
-if env_dir:
-    search_paths.append(env_dir)
-for var in ("BINDIR", "DLLDIR", "LIBDIR", "installed_base", "base", "platbase"):
-    val = sysconfig.get_config_var(var)
-    if val:
-        search_paths.append(val)
-seen = set()
-search_paths = [p for p in search_paths if p and not (p in seen or seen.add(p))]
-seen_found = set()
-found = [p for p in found if p and not (p in seen_found or seen_found.add(p))]
-for name in names:
-    for p in search_paths:
-        candidate = os.path.join(p, name)
-        if os.path.exists(candidate):
-            found.append(candidate)
-            break
-if not found and base_dir and os.path.exists(base_dir):
-    for name in names:
-        matches = glob.glob(os.path.join(base_dir, "**", name), recursive=True)
-        if matches:
-            found.append(matches[0])
-            break
-print(json.dumps({"version": ver, "names": names, "paths": found}))
-'@
-
-  $Json = & $PyExePath -c $PyCode
-  if (-not $Json) { return $null }
-  try {
-    return $Json | ConvertFrom-Json
-  } catch {
-    return $null
-  }
-}
 
 Write-Host "Sync version from git tag..."
 $UpdateScript = Join-Path $Root "scripts\\update_version.py"
@@ -194,89 +113,15 @@ if ($UseUpx -and (Test-Path $UpxExe)) {
 
 & $PyInstaller --noconfirm --clean @UpxArgs $SpecFile
 
-$OutputExeOnefile = Join-Path $Root "dist\BPM-Detector-Pro.exe"
-$OutputExeOnedir = Join-Path $Root "dist\BPM-Detector-Pro\BPM-Detector-Pro.exe"
+$OutputExe = Join-Path $Root "dist\BPM-Detector-Pro.exe"
 
-$OutputExe = $null
-if ($UseOnedir -and (Test-Path $OutputExeOnedir)) {
-  $OutputExe = $OutputExeOnedir
-} elseif (Test-Path $OutputExeOnefile) {
-  $OutputExe = $OutputExeOnefile
-}
-
-if ($OutputExe) {
-  # Ensure python DLLs are present next to the .exe (fixes "python3.dll missing" on Windows)
-  $TargetDir = Split-Path $OutputExe -Parent
-  $DllInfo = Get-PythonDllInfo -PyExePath $PyExe
-  if ($DllInfo -and $DllInfo.paths) {
-    foreach ($dllPath in $DllInfo.paths) {
-      if (-not $dllPath) { continue }
-      $dest = Join-Path $TargetDir (Split-Path $dllPath -Leaf)
-      if (-not (Test-Path $dest)) {
-        Copy-Item $dllPath $TargetDir -Force
-      }
-    }
-  } else {
-    Write-Warning "Could not locate python DLLs automatically."
-  }
-
-  # If python3.dll is missing but pythonXY.dll exists, duplicate it
-  if ($DllInfo -and $DllInfo.version) {
-    $PyXY = Join-Path $TargetDir "python$($DllInfo.version).dll"
-    $Py3 = Join-Path $TargetDir "python3.dll"
-    if ((Test-Path $PyXY) -and (-not (Test-Path $Py3))) {
-      Copy-Item $PyXY $Py3 -Force
-    }
-  }
-
-  # Hard check: fail if python DLLs are still missing in the output dir
-  $ExpectedDlls = @("python3.dll")
-  if ($DllInfo -and $DllInfo.version) {
-    $ExpectedDlls += "python$($DllInfo.version).dll"
-  }
-  foreach ($dll in $ExpectedDlls) {
-    $dllPath = Join-Path $TargetDir $dll
-    if (-not (Test-Path $dllPath)) {
-      Write-Error "Missing required DLL in output: $dllPath"
-      exit 1
-    }
-  }
-
-  # For ONEFILE builds, create a portable folder that keeps Python DLLs next to the exe
-  $PortableDir = $null
-  if (-not $UseOnedir) {
-    $PortableDir = Join-Path $Root "dist\BPM-Detector-Pro-Portable"
-    if (Test-Path $PortableDir) { Remove-Item $PortableDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $PortableDir -Force | Out-Null
-    Copy-Item $OutputExe $PortableDir -Force
-    Get-ChildItem $TargetDir -Filter "python*.dll" -ErrorAction SilentlyContinue | Copy-Item -Destination $PortableDir -Force
-    Get-ChildItem $TargetDir -Filter "vcruntime*.dll" -ErrorAction SilentlyContinue | Copy-Item -Destination $PortableDir -Force
-  }
-
-  # Optional: create a release ZIP that includes all required files
-  $CreateZipRaw = $env:CREATE_ZIP
-  if (-not $CreateZipRaw) { $CreateZipRaw = "1" }
-  $CreateZip = $CreateZipRaw.ToLower() -in @("1", "true", "yes", "y")
-  if ($CreateZip) {
-    $ZipOut = Join-Path $Root "dist\BPM-Detector-Pro-Windows.zip"
-    if ($UseOnedir) {
-      Compress-Archive -Path (Join-Path $Root "dist\BPM-Detector-Pro\*") -DestinationPath $ZipOut -Force
-    } else {
-      if ($PortableDir) {
-        Compress-Archive -Path (Join-Path $PortableDir "*") -DestinationPath $ZipOut -Force
-      } else {
-        Compress-Archive -Path $OutputExe -DestinationPath $ZipOut -Force
-      }
-    }
-    Write-Host "ZIP created: $ZipOut"
-  }
-
+if (Test-Path $OutputExe) {
   $Size = (Get-Item $OutputExe).Length / 1MB
   Write-Host ""
   Write-Host "=== BUILD SUCCESS ===" -ForegroundColor Green
   Write-Host "Output: $OutputExe"
   Write-Host ("Size: {0:N1} MB" -f $Size)
 } else {
-  Write-Error "Build failed - output not found"
+  Write-Error "Build failed - output not found at $OutputExe"
   exit 1
 }
