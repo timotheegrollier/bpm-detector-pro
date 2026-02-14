@@ -125,7 +125,7 @@ if (Test-Path $OutputExe) {
   
   # Create ZIP from the onedir folder
   Write-Host "Creating ZIP archive..."
-  Compress-Archive -Path $OutputDir -DestinationPath $OutputZip -CompressionLevel Optimal
+  Compress-Archive -Path $OutputDir -DestinationPath $OutputZip -CompressionLevel Optimal -Force
   
   $ExeSize = (Get-Item $OutputExe).Length / 1MB
   $ZipSize = (Get-Item $OutputZip).Length / 1MB
