@@ -194,7 +194,7 @@ jobs:
           path: ${{ env.APP_NAME }}.flatpak
 
   # ============================================
-  # WINDOWS BUILD (single .exe, no ZIP needed)
+  # WINDOWS BUILD (onedir + ZIP to avoid DLL issues)
   # ============================================
   build-windows:
     runs-on: windows-latest
@@ -219,32 +219,32 @@ jobs:
           $ffmpegExe = Get-ChildItem -Path ffmpeg-extract -Recurse -Name ffmpeg.exe | Select-Object -First 1
           Copy-Item "ffmpeg-extract/$ffmpegExe" packaging/ffmpeg/windows/ffmpeg.exe
 
-      - name: Build Windows single-file EXE
-        env:
-          USE_ONEDIR: '0'
-          CREATE_ZIP: '0'
+      - name: Build Windows (onedir mode)
         run: |
           .\scripts\build_windows.ps1
 
-      - name: Verify build output
+      - name: Verify build & create ZIP
         run: |
-          $exePath = "dist/${{ env.APP_NAME }}.exe"
+          $dirPath = "dist/${{ env.APP_NAME }}"
+          $exePath = "$dirPath/${{ env.APP_NAME }}.exe"
           if (-not (Test-Path $exePath)) {
             Write-Error "Build failed: $exePath not found"
             exit 1
           }
           $size = (Get-Item $exePath).Length / 1MB
           Write-Host ("Build OK: $exePath ({0:N1} MB)" -f $size)
-
-      - name: Rename for release
-        run: |
-          Copy-Item "dist/${{ env.APP_NAME }}.exe" "dist/${{ env.APP_NAME }}-Windows-x64.exe"
+          
+          # Create ZIP from onedir folder
+          $zipPath = "dist/${{ env.APP_NAME }}-Windows-x64.zip"
+          Compress-Archive -Path $dirPath -DestinationPath $zipPath -CompressionLevel Optimal
+          $zipSize = (Get-Item $zipPath).Length / 1MB
+          Write-Host ("ZIP: $zipPath ({0:N1} MB)" -f $zipSize)
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/${{ env.APP_NAME }}-Windows-x64.exe
+          path: dist/${{ env.APP_NAME }}-Windows-x64.zip
           if-no-files-found: error
 
   # ============================================
@@ -335,8 +335,8 @@ jobs:
           cp artifacts/linux-builds/*.deb release/ || true
           cp artifacts/linux-builds/*.rpm release/ || true
           
-          # Windows (single .exe)
-          cp "artifacts/windows-build/${{ env.APP_NAME }}-Windows-x64.exe" "release/${{ env.APP_NAME }}-Windows-x64.exe"
+          # Windows (ZIP with onedir folder)
+          cp "artifacts/windows-build/${{ env.APP_NAME }}-Windows-x64.zip" "release/${{ env.APP_NAME }}-Windows-x64.zip"
           
           # macOS
           cp artifacts/macos-build/${{ env.APP_NAME }}-macOS.dmg release/ || true
@@ -369,7 +369,7 @@ jobs:
             | 🐧 **Linux** | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./fichier.deb` |
             | 🐧 **Linux** | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./fichier.rpm` |
             | 🐧 **Linux** | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./fichier.flatpak` |
-            | 🪟 **Windows** | EXE | `BPM-Detector-Pro-Windows-x64.exe` | Double-clic pour lancer |
+            | 🪟 **Windows** | ZIP | `BPM-Detector-Pro-Windows-x64.zip` | Décompressez, puis double-clic sur `BPM-Detector-Pro.exe` |
             | 🍎 **macOS** | DMG | `BPM-Detector-Pro-macOS.dmg` | Ouvrez et glissez dans Applications |
             
             ---

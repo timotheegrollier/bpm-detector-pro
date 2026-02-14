@@ -16,9 +16,10 @@ if ($UseOptimized) {
   Write-Host "Mode: Legacy (full librosa)" -ForegroundColor Yellow
 }
 
-# Always use onefile mode with runtime_tmpdir='.' to avoid Windows Defender DLL issues
-Write-Host "Layout: ONEFILE (single .exe, DLLs extracted next to exe)" -ForegroundColor Green
-$env:USE_ONEDIR = "0"
+# ONEDIR mode: DLLs are normal files on disk, no dynamic extraction.
+# This is the ONLY way to reliably avoid "Failed to load Python DLL" errors
+# caused by Windows Defender blocking memory-mapped DLL loading.
+Write-Host "Layout: ONEDIR (folder with pre-extracted DLLs, distributed as ZIP)" -ForegroundColor Green
 
 if (-not (Test-Path $Venv)) {
   Write-Host "Creating virtual environment..."
@@ -113,14 +114,28 @@ if ($UseUpx -and (Test-Path $UpxExe)) {
 
 & $PyInstaller --noconfirm --clean @UpxArgs $SpecFile
 
-$OutputExe = Join-Path $Root "dist\BPM-Detector-Pro.exe"
+# Onedir produces a folder, create ZIP for distribution
+$OutputDir = Join-Path $Root "dist\BPM-Detector-Pro"
+$OutputExe = Join-Path $OutputDir "BPM-Detector-Pro.exe"
+$OutputZip = Join-Path $Root "dist\BPM-Detector-Pro-Windows-x64.zip"
 
 if (Test-Path $OutputExe) {
-  $Size = (Get-Item $OutputExe).Length / 1MB
+  # Remove old ZIP if it exists
+  if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
+  
+  # Create ZIP from the onedir folder
+  Write-Host "Creating ZIP archive..."
+  Compress-Archive -Path $OutputDir -DestinationPath $OutputZip -CompressionLevel Optimal
+  
+  $ExeSize = (Get-Item $OutputExe).Length / 1MB
+  $ZipSize = (Get-Item $OutputZip).Length / 1MB
+  $FileCount = (Get-ChildItem -Recurse $OutputDir | Measure-Object).Count
   Write-Host ""
   Write-Host "=== BUILD SUCCESS ===" -ForegroundColor Green
-  Write-Host "Output: $OutputExe"
-  Write-Host ("Size: {0:N1} MB" -f $Size)
+  Write-Host "Output folder: $OutputDir ($FileCount files)"
+  Write-Host ("EXE size: {0:N1} MB" -f $ExeSize)
+  Write-Host ("ZIP size: {0:N1} MB" -f $ZipSize)
+  Write-Host "ZIP: $OutputZip"
 } else {
   Write-Error "Build failed - output not found at $OutputExe"
   exit 1

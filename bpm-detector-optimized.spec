@@ -78,10 +78,10 @@ if os_name == 'windows':
     else:
         print(f"WARNING: Version info not found at {version_candidate}")
 
-# Always use onefile mode.
-# Fix for "Failed to load Python DLL": use runtime_tmpdir='.' so DLLs
-# are extracted next to the .exe (not in %TEMP% where Defender blocks them).
-use_onedir = False
+# WINDOWS: use onedir mode. DLLs are normal files on disk, no dynamic extraction,
+# so Windows Defender / antivirus cannot block memory-mapped DLL loading.
+# LINUX/MACOS: use onefile mode (no antivirus issues on these platforms).
+use_onedir = (os_name == 'windows')
 
 # Avoid UPX/strip on Linux (can break OpenBLAS/NumPy shared libs)
 use_upx = True
@@ -301,27 +301,59 @@ a.datas = [x for x in a.datas if not any(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# Single-file EXE with runtime_tmpdir='.' to extract DLLs next to the .exe
-# This avoids Windows Defender blocking extraction to %TEMP%\_MEI*
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='BPM-Detector-Pro',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=use_strip,
-    upx=use_upx,
-    upx_exclude=UPX_EXCLUDE,
-    runtime_tmpdir='.' if os_name == 'windows' else None,
-    console=False,
-    disable_windowed_traceback=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon=icon_path,
-    version=version_file,
-)
+if use_onedir:
+    # ONEDIR mode for Windows: DLLs are real files on disk, no dynamic extraction.
+    # This is the ONLY reliable way to avoid "Failed to load Python DLL" errors
+    # caused by Windows Defender blocking memory-mapped DLL loading from temp dirs.
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],       # No binaries/datas in EXE for onedir
+        exclude_binaries=True,
+        name='BPM-Detector-Pro',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=use_strip,
+        upx=use_upx,
+        upx_exclude=UPX_EXCLUDE,
+        console=False,
+        disable_windowed_traceback=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon=icon_path,
+        version=version_file,
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=use_strip,
+        upx=use_upx,
+        upx_exclude=UPX_EXCLUDE,
+        name='BPM-Detector-Pro',
+    )
+else:
+    # ONEFILE mode for Linux/macOS (no antivirus issues on these platforms)
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name='BPM-Detector-Pro',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=use_strip,
+        upx=use_upx,
+        upx_exclude=UPX_EXCLUDE,
+        console=False,
+        disable_windowed_traceback=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon=icon_path,
+        version=version_file,
+    )
