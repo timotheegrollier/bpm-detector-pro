@@ -48,90 +48,52 @@ SOCIAL_ICON_LINKEDIN_PNG_B64 = (
 _librosa = None
 _np = None
 _sf = None
+_core_detect_bpm_details = None
 
 
 def _ensure_libs():
     """Load heavy libraries on first use."""
-    global _librosa, _np, _sf
-    if _librosa is None:
+    global _librosa, _np, _sf, _core_detect_bpm_details
+    if _core_detect_bpm_details is None:
         import numpy as np
         import soundfile as sf
-        # Note: We use a lightweight BPM detector instead of full librosa
+        import librosa
+        from bpm_detector import detect_bpm_details
+
         _np = np
         _sf = sf
-        try:
-            import librosa
-            _librosa = librosa
-        except ImportError:
-            _librosa = None
+        _librosa = librosa
+        _core_detect_bpm_details = detect_bpm_details
 
 
 def _lightweight_bpm_detect(file_path: str, options: dict) -> dict:
     """
-    Lightweight BPM detection using only numpy + soundfile.
-    Falls back to librosa if available for better accuracy.
+    GUI wrapper around the core detector.
+
+    This keeps GUI and CLI behavior strictly aligned by delegating all
+    BPM computation to bpm_detector.detect_bpm_details.
     """
     _ensure_libs()
-    
-    import subprocess
-    import tempfile
-    
-    # Find ffmpeg
-    ffmpeg_path = _find_ffmpeg_fast()
-    if not ffmpeg_path:
-        raise RuntimeError("FFmpeg not found")
-    
-    # Decode to wav
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-        tmp_path = tmp.name
-    
-    try:
-        cmd = [ffmpeg_path, "-v", "error", "-y", "-threads", "1"]
-        start = options.get("start")
-        duration = options.get("duration") or 45  # Analyze only 45s for speed
-        
-        if start:
-            cmd += ["-ss", str(start)]
-        cmd += ["-i", file_path]
-        if duration:
-            cmd += ["-t", str(duration)]
-        cmd += ["-ac", "1", "-ar", "22050", "-f", "wav", tmp_path]
-        
-        # Hide console on Windows
-        if os.name == 'nt':
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, 
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            subprocess.run(cmd, check=True, 
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Load audio
-        y, sr = _sf.read(tmp_path)
-        if y.ndim > 1:
-            y = _np.mean(y, axis=1)
-        
-        # Use librosa if available (more accurate)
-        if _librosa is not None:
-            bpm = _estimate_bpm_librosa(y, sr, options)
-        else:
-            bpm = _estimate_bpm_numpy(y, sr, options)
-        
-        # Snap to integer if close
-        snap = options.get("snap_bpm", True)
-        if snap:
-            rounded = round(bpm)
-            if abs(bpm - rounded) < 1.1:
-                bpm = float(rounded)
-        
-        return {"status": "ok", "bpm": bpm}
-        
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except:
-            pass
+
+    details = _core_detect_bpm_details(
+        file_path,
+        sample_rate=int(options.get("sample_rate", 22050)),
+        start=options.get("start"),
+        duration=options.get("duration"),
+        min_bpm=float(options.get("min_bpm", 60)),
+        max_bpm=float(options.get("max_bpm", 200)),
+        use_hpss=bool(options.get("use_hpss", True)),
+        snap_bpm=bool(options.get("snap_bpm", True)),
+    )
+    bpm = details.get("bpm")
+    if _np is not None:
+        bpm_arr = _np.asarray(bpm).reshape(-1)
+        if bpm_arr.size == 0:
+            raise RuntimeError("Cannot estimate tempo")
+        bpm = float(bpm_arr[0])
+    else:
+        bpm = float(bpm)
+    return {"status": "ok", "bpm": bpm}
 
 
 def _estimate_bpm_librosa(y, sr: int, options: dict) -> float:
@@ -216,15 +178,22 @@ def _estimate_bpm_numpy(y, sr: int, options: dict) -> float:
     # Compute spectral flux
     prev_spec = _np.zeros(win // 2 + 1)
     onset_env = _np.zeros(n_frames)
+    window = _np.hanning(win)
     
     for i in range(n_frames):
-        frame = y[i * hop:i * hop + win] * _np.hanning(win)
+        frame = y[i * hop:i * hop + win] * window
         spec = _np.abs(rfft(frame))
         
         # Spectral flux (only positive differences)
         diff = spec - prev_spec
         onset_env[i] = _np.sum(diff[diff > 0])
         prev_spec = spec
+
+    # Light smoothing stabilizes the ACF and reduces spurious octave/triplet picks.
+    if onset_env.size >= 5:
+        kernel = _np.array([1.0, 2.0, 3.0, 2.0, 1.0], dtype=float)
+        kernel /= _np.sum(kernel)
+        onset_env = _np.convolve(onset_env, kernel, mode="same")
     
     # Autocorrelation
     ac = _np.correlate(onset_env, onset_env, mode='full')
@@ -232,8 +201,9 @@ def _estimate_bpm_numpy(y, sr: int, options: dict) -> float:
     
     # BPM range to lag range
     frame_rate = sr / hop
-    min_lag = int(frame_rate * 60 / max_bpm)
-    max_lag = int(frame_rate * 60 / min_bpm)
+    # Use ceil/floor so candidate BPM always stays inside the requested range.
+    min_lag = int(_np.ceil(frame_rate * 60 / max_bpm))
+    max_lag = int(_np.floor(frame_rate * 60 / min_bpm))
     max_lag = min(max_lag, len(ac) - 1)
     
     if min_lag >= len(ac) or min_lag >= max_lag:
@@ -241,9 +211,59 @@ def _estimate_bpm_numpy(y, sr: int, options: dict) -> float:
     
     search = ac[min_lag:max_lag + 1]
     best_idx = _np.argmax(search) + min_lag
-    
-    bpm = frame_rate * 60 / best_idx
-    return bpm
+
+    raw_bpm = frame_rate * 60 / best_idx
+    # Keep interpolation conservative in fast regions to avoid overshooting.
+    interp_cap = 0.25 if raw_bpm >= 170.0 else 0.30
+
+    # Parabolic interpolation around the autocorrelation peak.
+    if 0 < best_idx < len(ac) - 1:
+        y0, y1, y2 = ac[best_idx - 1], ac[best_idx], ac[best_idx + 1]
+        denom = y0 - 2.0 * y1 + y2
+        if abs(denom) > 1e-10:
+            delta = 0.5 * (y0 - y2) / denom
+            delta = max(-interp_cap, min(interp_cap, float(delta)))
+            best_lag = float(best_idx) + delta
+        else:
+            best_lag = float(best_idx)
+    else:
+        best_lag = float(best_idx)
+    best_lag = max(float(min_lag), min(float(max_lag), best_lag))
+
+    def _interp_ac(lag: float) -> float:
+        i = int(_np.floor(lag))
+        if i <= 0:
+            return float(ac[0])
+        if i >= len(ac) - 1:
+            return float(ac[-1])
+        frac = lag - i
+        return float(ac[i] * (1.0 - frac) + ac[i + 1] * frac)
+
+    # Harmonic correction near range boundaries:
+    # - near max BPM, slow down by ~3/2 if strongly supported
+    # - near low BPM, speed up by 2/3 if strongly supported
+    # The 1.502 factor slightly compensates quantization bias on dense material.
+    bpm = frame_rate * 60.0 / best_lag
+    peak_val = _interp_ac(best_lag)
+
+    if bpm > float(max_bpm) * 0.95:
+        slower_lag = best_lag * 1.502
+        if min_lag <= slower_lag <= max_lag:
+            slower_val = _interp_ac(slower_lag)
+            if slower_val >= peak_val * 0.93:
+                best_lag = slower_lag
+                peak_val = slower_val
+                bpm = frame_rate * 60.0 / best_lag
+
+    if bpm < 115.0:
+        faster_lag = best_lag * (2.0 / 3.0)
+        if min_lag <= faster_lag <= max_lag:
+            faster_val = _interp_ac(faster_lag)
+            if faster_val >= peak_val * 0.93:
+                best_lag = faster_lag
+                bpm = frame_rate * 60.0 / best_lag
+
+    return float(bpm)
 
 
 def _find_ffmpeg_fast() -> Optional[str]:
