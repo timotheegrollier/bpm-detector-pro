@@ -22,7 +22,7 @@ High-precision BPM detection for audio files with a modern desktop GUI and CLI.
 
 Download artifacts from [GitHub Releases](../../releases):
 
-- Linux: `BPM-detector-Linux-x64`
+- Linux: `BPM-detector-Linux-x64.tar.xz`
 - Windows: `BPM-detector-Windows-x64.zip`
 - Windows Installer: `BPM-detector-Setup-Windows-x64.exe`
 - macOS: `BPM-detector-macOS.dmg`

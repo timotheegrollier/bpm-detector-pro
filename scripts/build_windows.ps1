@@ -213,9 +213,18 @@ If you get "Failed to load Python DLL":
   # Remove old ZIP if it exists
   if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
   
-  # Create ZIP from the onedir folder
+  # Create ZIP from the onedir folder.
+  # Prefer 7-Zip when available for smaller archives; fallback to Compress-Archive.
   Write-Host "Creating ZIP archive..."
-  Compress-Archive -Path $OutputDir -DestinationPath $OutputZip -CompressionLevel Optimal -Force
+  $SevenZipCmd = Get-Command 7z -ErrorAction SilentlyContinue
+  if (-not $SevenZipCmd) {
+    $SevenZipCmd = Get-Command 7z.exe -ErrorAction SilentlyContinue
+  }
+  if ($SevenZipCmd) {
+    & $SevenZipCmd.Source a -tzip -mx=9 -mfb=258 -mpass=15 -y $OutputZip $OutputDir | Out-Null
+  } else {
+    Compress-Archive -Path $OutputDir -DestinationPath $OutputZip -CompressionLevel Optimal -Force
+  }
   
   $ExeSize = (Get-Item $OutputExe).Length / 1MB
   $ZipSize = (Get-Item $OutputZip).Length / 1MB

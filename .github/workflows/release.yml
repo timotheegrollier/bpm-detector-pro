@@ -86,7 +86,7 @@ jobs:
       - name: Build Linux binary
         run: |
           chmod +x scripts/build_linux.sh
-          ./scripts/build_linux.sh
+          USE_STRIP=1 ./scripts/build_linux.sh
 
       - name: Create DEB package
         run: |
@@ -116,6 +116,7 @@ jobs:
           fpm -s dir -t deb \
             -n bpm-detector \
             -v "$VERSION" \
+            --deb-compression xz \
             --description "High-precision BPM detection for audio files" \
             --url "https://github.com/${{ github.repository }}" \
             --license "MIT" \
@@ -132,6 +133,7 @@ jobs:
           fpm -s dir -t rpm \
             -n bpm-detector \
             -v "$VERSION" \
+            --rpm-compression xz \
             --description "High-precision BPM detection for audio files" \
             --url "https://github.com/${{ github.repository }}" \
             --license "MIT" \
@@ -423,6 +425,8 @@ jobs:
           # Linux
           cp artifacts/linux-builds/${{ env.APP_NAME }} release/${{ env.APP_NAME }}-Linux-x64
           chmod +x release/${{ env.APP_NAME }}-Linux-x64
+          tar -C release -cJf release/${{ env.APP_NAME }}-Linux-x64.tar.xz ${{ env.APP_NAME }}-Linux-x64
+          rm -f release/${{ env.APP_NAME }}-Linux-x64
           cp artifacts/linux-builds/*.deb release/ || true
           cp artifacts/linux-builds/*.rpm release/ || true
           
@@ -471,7 +475,7 @@ jobs:
 
             | Platform | Format | File | Instructions |
             |----------|--------|------|--------------|
-            | Linux | Binary | `BPM-detector-Linux-x64` | Run `chmod +x` then execute |
+            | Linux | Binary | `BPM-detector-Linux-x64.tar.xz` | Extract, then run `chmod +x BPM-detector-Linux-x64 && ./BPM-detector-Linux-x64` |
             | Linux | DEB | `bpm-detector_*.deb` | `sudo apt install ./file.deb` |
             | Linux | RPM | `bpm-detector-*.rpm` | `sudo dnf install ./file.rpm` |
             | Linux | Flatpak | `BPM-detector.flatpak` | `flatpak install ./file.flatpak` |
