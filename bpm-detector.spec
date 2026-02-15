@@ -151,16 +151,10 @@ EXCLUDES = [
     'numpy.f2py',
     'numpy.testing',
     
-    # Network/web (we only use local files)
+    # Networking stacks (we only use local files)
     'urllib3',
     'requests',
     'html',
-    
-    # Flask (not needed for GUI)
-    'flask',
-    'werkzeug',
-    'jinja2',
-    'click',
     
     # Debug/dev tools
     'pdb',

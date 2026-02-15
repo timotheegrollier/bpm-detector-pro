@@ -1,8 +1,8 @@
 # BPM-detector
 
-High-precision BPM detection for audio files with a modern desktop GUI, CLI, and web UI.
+High-precision BPM detection for audio files with a modern desktop GUI and CLI.
 
-![Version](https://img.shields.io/badge/version-1.3.7-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
@@ -13,7 +13,6 @@ High-precision BPM detection for audio files with a modern desktop GUI, CLI, and
 - Multi-file batch selection from the GUI (`Fichiers...` supports Ctrl/Cmd+click)
 - Folder analysis mode for large-library scans
 - CLI mode for automation and scripting
-- Web UI (Flask) for browser-based usage
 - Portable binaries with bundled FFmpeg (no system FFmpeg required in release artifacts)
 - Supports common formats: MP3, FLAC, WAV, M4A, OGG, AAC, and more
 
@@ -112,14 +111,6 @@ python bpm_detect.py my_track.mp3 --json
 python bpm_detect.py dnb_track.flac --min-bpm 140 --max-bpm 190 --hop-length 64
 ```
 
-### Web UI
-
-```bash
-python app.py
-```
-
-Then open `http://127.0.0.1:5000`.
-
 ## Build
 
 See [BUILDING.md](BUILDING.md) for complete build and packaging instructions.
@@ -149,15 +140,18 @@ bpm-detector/
 ├── bpm_gui_fast.py             # Compatibility launcher (alias to bpm_gui.py)
 ├── bpm_detector.py             # Core BPM detection engine
 ├── bpm_detect.py               # CLI
-├── app.py                      # Flask web app
 ├── scripts/                    # Build scripts
 ├── packaging/                  # Packaging assets and ffmpeg locations
-├── packaging/windows/          # Inno Setup installer script
-├── static/                     # Web static assets
-└── templates/                  # Web templates
+└── packaging/windows/          # Inno Setup installer script
 ```
 
 ## Changelog
+
+### v1.4.0
+
+- Removed the legacy Flask web app scaffold to focus on maintained desktop GUI/CLI workflows
+- Deleted unused web files and dependency references (`app.py`, `templates/`, `static/`, `flask`)
+- Refined desktop footer branding with clearer social links and updated author line
 
 ### v1.3.7
 

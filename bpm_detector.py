@@ -1,4 +1,4 @@
-"""Core BPM detection utilities used by CLI and web UI."""
+"""Core BPM detection utilities used by the CLI and desktop GUI."""
 
 from __future__ import annotations
 
