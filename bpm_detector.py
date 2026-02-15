@@ -378,7 +378,11 @@ def _snap_value(value: float, *, step: float, tolerance: float) -> float:
     # Try snapping to integer first
     # For electronic music, we favor integers heavily.
     # We use a permissive tolerance for integers as most tracks are perfectly quantized.
-    snapped_int = round(value)
+    # Use a slightly "musical" half-up threshold (0.495) to avoid borderline
+    # under-rounding from float noise around x.5 BPM (e.g. 159.495 -> 160).
+    floor_v = float(np.floor(value))
+    frac = value - floor_v
+    snapped_int = int(floor_v + 1.0) if frac >= 0.495 else int(floor_v)
     if abs(value - snapped_int) <= tolerance:
         return float(snapped_int)
     
