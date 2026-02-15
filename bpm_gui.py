@@ -457,6 +457,34 @@ class BPMApp(tk.Tk):
             return image
         except Exception:
             return None
+
+    def _make_social_button(
+        self,
+        parent: tk.Widget,
+        label: str,
+        url: str,
+        image: Optional[tk.PhotoImage],
+    ) -> tk.Button:
+        button_kwargs = {}
+        if image is not None:
+            button_kwargs["compound"] = "left"
+
+        return tk.Button(
+            parent,
+            text=label,
+            image=image,
+            command=lambda: self._open_external_link(url),
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+            font=(self._pick_font_family(), 9, "bold"),
+            bd=0,
+            padx=8,
+            pady=6,
+            activebackground=self.colors["bg"],
+            activeforeground=self.colors["accent"],
+            cursor="hand2",
+            **button_kwargs
+        )
     
     def _build_ui(self) -> None:
         # Header
@@ -634,16 +662,8 @@ class BPMApp(tk.Tk):
         self.log_text.pack(side="left", fill="both", expand=True)
         log_sb.pack(side="right", fill="y")
         
-        # Status bar
-        self.status_var = tk.StringVar(value="Initialisation...")
-        self.status_label = tk.Label(self, textvariable=self.status_var, 
-                                    bg=self.colors["bg"], fg=self.colors["muted"], 
-                                    font=(self._pick_font_family(), 9), 
-                                    anchor="w", padx=30, pady=10)
-        self.status_label.pack(fill="x")
-
         footer = tk.Frame(self, bg=self.colors["bg"])
-        footer.pack(fill="x", padx=30, pady=(0, 12))
+        footer.pack(side="bottom", fill="x", padx=30, pady=(0, 12))
 
         tk.Label(
             footer,
@@ -657,60 +677,34 @@ class BPMApp(tk.Tk):
         social_box = tk.Frame(footer, bg=self.colors["bg"])
         social_box.pack(side="right")
 
-        self._website_icon_image = self._photo_from_base64(SOCIAL_ICON_WEBSITE_PNG_B64, zoom=2)
-        self._github_icon_image = self._photo_from_base64(SOCIAL_ICON_GITHUB_PNG_B64, zoom=2)
-        self._linkedin_icon_image = self._photo_from_base64(SOCIAL_ICON_LINKEDIN_PNG_B64, zoom=2)
+        self._website_icon_image = self._photo_from_base64(SOCIAL_ICON_WEBSITE_PNG_B64)
+        self._github_icon_image = self._photo_from_base64(SOCIAL_ICON_GITHUB_PNG_B64)
+        self._linkedin_icon_image = self._photo_from_base64(SOCIAL_ICON_LINKEDIN_PNG_B64)
 
-        self.website_btn = tk.Button(
-            social_box,
-            text="" if self._website_icon_image else "WWW",
-            image=self._website_icon_image,
-            command=lambda: self._open_external_link(WEBSITE_URL),
-            bg=self.colors["bg"],
-            fg=self.colors["text"],
-            font=(self._pick_font_family(), 9, "bold"),
-            bd=0,
-            padx=8,
-            pady=6,
-            activebackground=self.colors["bg"],
-            activeforeground=self.colors["accent"],
-            cursor="hand2"
+        self.website_btn = self._make_social_button(
+            social_box, "Website", WEBSITE_URL, self._website_icon_image
         )
         self.website_btn.pack(side="right", padx=(8, 0))
 
-        self.linkedin_btn = tk.Button(
-            social_box,
-            text="" if self._linkedin_icon_image else "in",
-            image=self._linkedin_icon_image,
-            command=lambda: self._open_external_link(LINKEDIN_URL),
-            bg=self.colors["bg"],
-            fg=self.colors["text"],
-            font=(self._pick_font_family(), 9, "bold"),
-            bd=0,
-            padx=8,
-            pady=6,
-            activebackground=self.colors["bg"],
-            activeforeground=self.colors["accent"],
-            cursor="hand2"
+        self.linkedin_btn = self._make_social_button(
+            social_box, "LinkedIn", LINKEDIN_URL, self._linkedin_icon_image
         )
         self.linkedin_btn.pack(side="right", padx=(8, 0))
 
-        self.github_btn = tk.Button(
-            social_box,
-            text="" if self._github_icon_image else "GH",
-            image=self._github_icon_image,
-            command=lambda: self._open_external_link(GITHUB_URL),
-            bg=self.colors["bg"],
-            fg=self.colors["text"],
-            font=(self._pick_font_family(), 9, "bold"),
-            bd=0,
-            padx=8,
-            pady=6,
-            activebackground=self.colors["bg"],
-            activeforeground=self.colors["accent"],
-            cursor="hand2"
+        self.github_btn = self._make_social_button(
+            social_box, "GitHub", GITHUB_URL, self._github_icon_image
         )
         self.github_btn.pack(side="right", padx=(8, 0))
+
+        # Status bar (packed after footer so it always stays above it).
+        self.status_var = tk.StringVar(value="Initialisation...")
+        self.status_label = tk.Label(
+            self, textvariable=self.status_var,
+            bg=self.colors["bg"], fg=self.colors["muted"],
+            font=(self._pick_font_family(), 9),
+            anchor="w", padx=30, pady=10
+        )
+        self.status_label.pack(side="bottom", fill="x")
     
     def _open_settings(self) -> None:
         """Open settings dialog."""

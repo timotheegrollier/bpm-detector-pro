@@ -73,6 +73,7 @@ Compare the resulting hash with the corresponding entry in `checksums.txt`.
 ```bash
 python bpm_gui.py
 # or use packaged binary
+# note: bpm_gui_fast.py is only a compatibility alias to bpm_gui.py
 ```
 
 GUI workflow:
@@ -137,7 +138,7 @@ Note: an installer improves installation flow and shortcut behavior, but SmartSc
 ```text
 bpm-detector/
 ├── bpm_gui.py                  # Desktop GUI (single runtime profile)
-├── bpm_gui_fast.py             # Compatibility launcher (alias to bpm_gui.py)
+├── bpm_gui_fast.py             # Thin compatibility wrapper; no second GUI implementation
 ├── bpm_detector.py             # Core BPM detection engine
 ├── bpm_detect.py               # CLI
 ├── scripts/                    # Build scripts
