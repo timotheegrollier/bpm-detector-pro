@@ -88,7 +88,6 @@ pip install -r requirements-minimal.txt pyinstaller
 
 - Unsigned executables can trigger warnings.
 - Keep ONEDIR packaging and avoid moving only the `.exe` file.
-- Sign the executable (Authenticode) for production distribution.
 - A Setup installer improves installation UX (shortcuts, fixed install path), but does not guarantee SmartScreen trust by itself.
 
 ### App starts slowly on Windows
@@ -103,6 +102,20 @@ pip install -r requirements-minimal.txt pyinstaller
 - Launch `BPM-detector.exe` directly from the extracted folder.
 - If needed, install/repair `Microsoft Visual C++ Redistributable 2015-2022 (x64)`.
 
+## Checksums
+
+Generate SHA256 hashes for a release directory:
+
+```bash
+python scripts/generate_checksums.py release --output release/checksums.txt --relative-to release
+```
+
+Verify:
+
+```bash
+sha256sum -c release/checksums.txt
+```
+
 ## Release CI
 
 GitHub Actions release workflow runs on pushed tags matching `v*`.
@@ -110,6 +123,7 @@ Windows CI now publishes both:
 
 - `BPM-detector-Windows-x64.zip` (portable ONEDIR)
 - `BPM-detector-Setup-Windows-x64.exe` (installer)
+- `checksums.txt` (SHA256 hashes for all release files)
 
 Example:
 

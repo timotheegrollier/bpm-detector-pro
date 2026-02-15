@@ -2,7 +2,7 @@
 
 High-precision BPM detection for audio files with a modern desktop GUI, CLI, and web UI.
 
-![Version](https://img.shields.io/badge/version-1.3.6-blue)
+![Version](https://img.shields.io/badge/version-1.3.7-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
@@ -27,6 +27,7 @@ Download artifacts from [GitHub Releases](../../releases):
 - Windows: `BPM-detector-Windows-x64.zip`
 - Windows Installer: `BPM-detector-Setup-Windows-x64.exe`
 - macOS: `BPM-detector-macOS.dmg`
+- Checksums: `checksums.txt`
 
 Windows note:
 
@@ -49,6 +50,22 @@ pip install -r requirements.txt
 ```
 
 If running from source, make sure FFmpeg is installed or available through `FFMPEG_BINARY` / `FFMPEG_PATH`.
+
+### Verify Download Integrity
+
+Use the `checksums.txt` file from the same release:
+
+```bash
+sha256sum -c checksums.txt
+```
+
+On Windows PowerShell:
+
+```powershell
+Get-FileHash .\BPM-detector-Setup-Windows-x64.exe -Algorithm SHA256
+```
+
+Compare the resulting hash with the corresponding entry in `checksums.txt`.
 
 ## Usage
 
@@ -141,6 +158,13 @@ bpm-detector/
 ```
 
 ## Changelog
+
+### v1.3.7
+
+- Header UI refresh: cleaner branding and compact monochrome website/GitHub/LinkedIn icons
+- Window title now shows app name + version only
+- Added SHA256 checksum generation and publication (`checksums.txt`) in release workflow
+- Removed optional paid-code-signing workflow/docs to keep release pipeline simple
 
 ### v1.3.6
 

@@ -383,6 +383,11 @@ jobs:
           
           ls -la release/
 
+      - name: Generate SHA256 checksums
+        run: |
+          python3 scripts/generate_checksums.py release --output release/checksums.txt --relative-to release
+          cat release/checksums.txt
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -390,12 +395,11 @@ jobs:
           body: |
             ## BPM-detector ${{ github.ref_name }}
 
-            This release focuses on Windows packaging cleanup and documentation alignment.
+            Multi-platform release for Linux, Windows, and macOS.
 
             ### Highlights
-            - Removed the Windows `.cmd` launcher from packaged artifacts
-            - Startup remains direct via `BPM-detector.exe` with the same `_internal` layout
-            - Updated README/build/release instructions for the new Windows startup flow
+            - Windows: portable ZIP and installer are built from the same ONEDIR payload
+            - Release integrity: `checksums.txt` now published with SHA256 hashes for every artifact
 
             ### Downloads
 
@@ -425,6 +429,21 @@ jobs:
             ```bash
             flatpak install --user ./BPM-detector.flatpak
             ```
+
+            ### Integrity Verification
+
+            `checksums.txt` is included in release assets.
+
+            **Linux/macOS:**
+            ```bash
+            sha256sum -c checksums.txt
+            ```
+
+            **Windows (PowerShell):**
+            ```powershell
+            Get-FileHash .\BPM-detector-Setup-Windows-x64.exe -Algorithm SHA256
+            ```
+            Compare the hash with the matching line in `checksums.txt`.
 
             Full documentation: [README](https://github.com/${{ github.repository }}/blob/main/README.md)
           files: |

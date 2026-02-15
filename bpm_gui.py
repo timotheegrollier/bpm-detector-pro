@@ -21,8 +21,27 @@ from typing import Optional
 
 from app_version import APP_VERSION
 
-AUTHOR_NAME = "Timothee Grollier"
-AUTHOR_URL = "https://timotheegrollier.github.io/"
+APP_NAME = "BPM-detector"
+WEBSITE_URL = "https://timotheegrollier.github.io/"
+GITHUB_URL = "https://github.com/timotheegrollier"
+LINKEDIN_URL = "https://fr.linkedin.com/in/timoth%C3%A9e-grollier-dev"
+SOCIAL_ICON_WEBSITE_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAhklEQVR4nKVRMQ4AIQir5EYX"
+    "h/v/Ax1c3L1JQ7AQzbEo0paCwM9IXqG2PnT+lkyx26MmviWnU6FFtoSZ23NzUFsfrCPrPrEA"
+    "8LBu2qYGM3Fhc7szGhdL4ITIRDB3EM19JORt2L6xu8D57yj0YoUVPRKrJwbyYjrVSxQLiHJL"
+    "3hxEbm6++So+fWl6F1QVCVoAAAAASUVORK5CYII="
+)
+SOCIAL_ICON_GITHUB_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbElEQVR4nGNgoBAw4pJ4/f7L"
+    "f2S+qCAPTrUYGtE14xPHaytJatAl8PGR2Syk2Pb6/Zf/6GHBhE0CWSO2wBMV5GFEMRyX8/C5"
+    "CkZjeIGQS7BGJ65oI4VPVBRiU8tErCaSTSZbDalJmfqZiVQAABHbgxTqXBOjAAAAAElFTkSu"
+    "QmCC"
+)
+SOCIAL_ICON_LINKEDIN_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAT0lEQVR4nGNgoBAwwhiv33/5"
+    "T4pGUUEeuF6SNSPrYSJVIzqgjQGkeAmrASgBRACw4HIBzBB016AbjtUAfC5CNpxh8MYCyWBA"
+    "UyJ1MhMlAADHECeCKntTDwAAAABJRU5ErkJggg=="
+)
 # Lazy-loaded modules (heavy)
 _librosa = None
 _np = None
@@ -263,7 +282,7 @@ class BPMApp(tk.Tk):
     
     def __init__(self) -> None:
         super().__init__()
-        self.title(f"BPM-detector v{APP_VERSION} - {AUTHOR_NAME}")
+        self.title(f"{APP_NAME} v{APP_VERSION}")
         self._set_window_icon()
         self.geometry("1024x768")
         
@@ -422,11 +441,17 @@ class BPMApp(tk.Tk):
             return "SF Pro Text"
         return "Cantarell"
 
-    def _open_author_page(self, _event: Optional[tk.Event] = None) -> None:
+    def _open_external_link(self, url: str) -> None:
         try:
-            webbrowser.open(AUTHOR_URL, new=2)
+            webbrowser.open(url, new=2)
         except Exception:
             pass
+
+    def _photo_from_base64(self, png_b64: str) -> Optional[tk.PhotoImage]:
+        try:
+            return tk.PhotoImage(data=png_b64)
+        except Exception:
+            return None
     
     def _build_ui(self) -> None:
         # Header
@@ -434,30 +459,114 @@ class BPMApp(tk.Tk):
         header.pack(fill="x", padx=30, pady=(25, 10))
         
         title_box = ttk.Frame(header, style="TFrame")
-        title_box.pack(side="left")
-        ttk.Label(title_box, text="BPM-detector", style="Header.TLabel").pack(anchor="w")
-        tk.Label(title_box, text="Studio Grade Analysis", bg=self.colors["bg"], 
-                fg=self.colors["accent"], font=(self._pick_font_family(), 9, "bold")).pack(anchor="w")
-        author_label = tk.Label(
-            title_box,
-            text=f"by {AUTHOR_NAME}",
+        title_box.pack(side="left", fill="x", expand=True)
+
+        brand_row = ttk.Frame(title_box, style="TFrame")
+        brand_row.pack(anchor="w")
+
+        logo_path = self._resolve_asset_path(os.path.join("packaging", "assets", "bpm-detector.png"))
+        if logo_path:
+            try:
+                logo_image = tk.PhotoImage(file=logo_path)
+                max_logo_px = 22
+                scale = max(1, max(logo_image.width(), logo_image.height()) // max_logo_px)
+                if scale > 1:
+                    logo_image = logo_image.subsample(scale, scale)
+                self._header_logo_image = logo_image
+                tk.Label(
+                    brand_row,
+                    image=self._header_logo_image,
+                    bg=self.colors["bg"],
+                    bd=0,
+                    highlightthickness=0
+                ).pack(side="left", padx=(0, 8))
+            except Exception:
+                self._header_logo_image = None
+
+        ttk.Label(brand_row, text=APP_NAME, style="Header.TLabel").pack(side="left")
+
+        meta_row = ttk.Frame(title_box, style="TFrame")
+        meta_row.pack(anchor="w", pady=(2, 0))
+        tk.Label(
+            meta_row,
+            text="Studio Grade Analysis",
             bg=self.colors["bg"],
             fg=self.colors["accent"],
-            font=(self._pick_font_family(), 8, "underline"),
-            cursor="hand2",
+            font=(self._pick_font_family(), 9, "bold")
+        ).pack(side="left")
+        tk.Label(
+            meta_row,
+            text=f"Version {APP_VERSION}",
+            bg=self.colors["bg"],
+            fg=self.colors["muted"],
+            font=(self._pick_font_family(), 8, "normal")
+        ).pack(side="left", padx=(10, 0))
+
+        action_box = ttk.Frame(header, style="TFrame")
+        action_box.pack(side="right", pady=5)
+
+        self._website_icon_image = self._photo_from_base64(SOCIAL_ICON_WEBSITE_PNG_B64)
+        self._github_icon_image = self._photo_from_base64(SOCIAL_ICON_GITHUB_PNG_B64)
+        self._linkedin_icon_image = self._photo_from_base64(SOCIAL_ICON_LINKEDIN_PNG_B64)
+
+        self.website_btn = tk.Button(
+            action_box,
+            text="" if self._website_icon_image else "[WWW]",
+            image=self._website_icon_image,
+            command=lambda: self._open_external_link(WEBSITE_URL),
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+            font=(self._pick_font_family(), 8, "bold"),
+            bd=0,
+            padx=4,
+            pady=2,
+            activebackground=self.colors["bg"],
+            activeforeground=self.colors["accent"],
+            cursor="hand2"
         )
-        author_label.pack(anchor="w")
-        author_label.bind("<Button-1>", self._open_author_page)
-        tk.Label(title_box, text=f"Version {APP_VERSION}", bg=self.colors["bg"],
-                fg=self.colors["muted"], font=(self._pick_font_family(), 8, "normal")).pack(anchor="w")
+        self.website_btn.pack(side="right", padx=(6, 0))
+
+        self.linkedin_btn = tk.Button(
+            action_box,
+            text="" if self._linkedin_icon_image else "[in]",
+            image=self._linkedin_icon_image,
+            command=lambda: self._open_external_link(LINKEDIN_URL),
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+            font=(self._pick_font_family(), 8, "bold"),
+            bd=0,
+            padx=4,
+            pady=2,
+            activebackground=self.colors["bg"],
+            activeforeground=self.colors["accent"],
+            cursor="hand2"
+        )
+        self.linkedin_btn.pack(side="right", padx=(6, 0))
+
+        self.github_btn = tk.Button(
+            action_box,
+            text="" if self._github_icon_image else "[GH]",
+            image=self._github_icon_image,
+            command=lambda: self._open_external_link(GITHUB_URL),
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+            font=(self._pick_font_family(), 8, "bold"),
+            bd=0,
+            padx=4,
+            pady=2,
+            activebackground=self.colors["bg"],
+            activeforeground=self.colors["accent"],
+            cursor="hand2"
+        )
+        self.github_btn.pack(side="right", padx=(6, 0))
         
         self.gear_btn = tk.Button(
-            header, text="⚙", command=self._open_settings,
+            action_box, text="⚙", command=self._open_settings,
             bg=self.colors["bg"], fg=self.colors["muted"], font=("Arial", 18),
             bd=0, activebackground=self.colors["bg"], 
             activeforeground=self.colors["accent"], cursor="hand2"
         )
-        self.gear_btn.pack(side="right", pady=5)
+        self.gear_btn.pack(side="right", padx=(12, 0))
         
         # Main content
         content = ttk.Frame(self, style="TFrame")
