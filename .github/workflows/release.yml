@@ -39,11 +39,7 @@ jobs:
       - name: Validate app version file matches tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          APP_VERSION="$(python3 - <<'PY'
-from app_version import APP_VERSION
-print(APP_VERSION)
-PY
-)"
+          APP_VERSION="$(python3 -c 'from app_version import APP_VERSION; print(APP_VERSION)')"
           echo "Tag version: $TAG_VERSION"
           echo "app_version.py: $APP_VERSION"
           if [ "$APP_VERSION" != "$TAG_VERSION" ]; then
@@ -440,11 +436,7 @@ PY
           # Flatpak (optional)
           cp artifacts/flatpak-build/${{ env.APP_NAME }}.flatpak release/ || true
 
-          APP_VERSION="$(python3 - <<'PY'
-from app_version import APP_VERSION
-print(APP_VERSION)
-PY
-)"
+          APP_VERSION="$(python3 -c 'from app_version import APP_VERSION; print(APP_VERSION)')"
           GUI_SHA="$(sha256sum bpm_gui.py | awk '{print $1}')"
           {
             echo "tag=${GITHUB_REF_NAME}"

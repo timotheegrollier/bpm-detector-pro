@@ -2,7 +2,7 @@
 
 High-precision BPM detection for audio files with a modern desktop GUI and CLI.
 
-![Version](https://img.shields.io/badge/version-1.4.2-blue)
+![Version](https://img.shields.io/badge/version-1.4.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
@@ -150,6 +150,10 @@ bpm-detector/
 ```
 
 ## Changelog
+
+### v1.4.3
+
+- Fixed GitHub Actions `release.yml` YAML syntax so tagged releases run correctly in CI
 
 ### v1.4.2
 

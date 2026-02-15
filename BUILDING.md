@@ -134,7 +134,7 @@ Windows CI now publishes both:
 Example:
 
 ```bash
-git tag v1.4.2
+git tag v1.4.3
 git push origin master --tags
 ```
 
