@@ -100,12 +100,13 @@ UPX_EXCLUDE = [
     'libopenblas*.so*',
 ]
 
-# Minimal data collection - only soundfile libs
+# Data/runtime collection for audio stack
 datas = []
+datas += collect_data_files('librosa')
 binaries += collect_dynamic_libs('soundfile')
 
 # Aggressive exclusions to minimize bundle size
-# These are not needed for BPM detection
+# Keep core audio-analysis stack required by bpm_detector (librosa/scipy).
 EXCLUDES = [
     # Heavy ML/scientific packages not needed
     'matplotlib',
@@ -120,13 +121,6 @@ EXCLUDES = [
     'sklearn',
     'pandas',
     
-    # Numba JIT compiler (huge, not critical for our use case)
-    'numba',
-    'llvmlite',
-
-    # Librosa (optional, large). Runtime uses numpy-only fallback when missing.
-    'librosa',
-    
     # Testing frameworks
     'pytest',
     'unittest',
@@ -135,16 +129,6 @@ EXCLUDES = [
     # Documentation
     'sphinx',
     'docutils',
-    
-    # Scipy (not used in optimized build)
-    'scipy',
-    'scipy.spatial.transform',
-    'scipy.io.matlab',
-    'scipy.io.arff',
-    'scipy.io.netcdf',
-    'scipy.io.harwell_boeing',
-    'scipy.sparse.linalg._isolve',
-    'scipy.sparse.linalg._eigen',
     
     # Unused numpy extras
     'numpy.distutils',
@@ -173,10 +157,12 @@ EXCLUDES = [
     'multiprocessing.popen_spawn_win32' if os_name != 'windows' else 'multiprocessing.popen_fork',
 ]
 
-# Only the essential hidden imports
+# Explicit hidden imports for lazy imports used by the GUI wrapper.
 hiddenimports = [
     'soundfile',
     'numpy',
+    'bpm_detector',
+    'librosa',
 ]
 
 def _add_python_dlls(binaries_list):
