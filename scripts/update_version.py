@@ -82,13 +82,13 @@ VSVersionInfo(
       StringTable(
         '040904B0',
         [
-          StringStruct('CompanyName', 'BPM Detector Pro'),
-          StringStruct('FileDescription', 'BPM Detector Pro'),
+          StringStruct('CompanyName', 'Timothee Grollier'),
+          StringStruct('FileDescription', 'BPM-detector'),
           StringStruct('FileVersion', '{version}'),
-          StringStruct('InternalName', 'BPM-Detector-Pro'),
+          StringStruct('InternalName', 'BPM-detector'),
           StringStruct('LegalCopyright', 'Copyright (c) 2026'),
-          StringStruct('OriginalFilename', 'BPM-Detector-Pro.exe'),
-          StringStruct('ProductName', 'BPM Detector Pro'),
+          StringStruct('OriginalFilename', 'BPM-detector.exe'),
+          StringStruct('ProductName', 'BPM-detector'),
           StringStruct('ProductVersion', '{version}'),
         ]
       )

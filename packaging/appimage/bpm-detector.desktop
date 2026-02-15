@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=BPM Detector
+Name=BPM-detector
 Comment=Detection rapide du tempo pour fichiers audio
 Exec=bpm-detector
 Icon=bpm-detector

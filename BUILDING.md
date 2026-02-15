@@ -1,12 +1,13 @@
-# Build Guide - BPM Detector Pro
+# Build Guide - BPM-detector
 
 This project uses PyInstaller to generate standalone desktop binaries.
 
-## Recommended Build Path
+## Build Profile
 
-Use the optimized build pipeline by default. It delivers smaller artifacts and faster startup.
+The project now ships a single desktop runtime profile across platforms.
+There is no separate legacy/full packaging mode.
 
-### Windows (optimized)
+### Windows
 
 ```powershell
 .\scripts\build_windows.ps1
@@ -14,8 +15,18 @@ Use the optimized build pipeline by default. It delivers smaller artifacts and f
 
 Outputs:
 
-- `dist\BPM-Detector-Pro\` (ONEDIR folder)
-- `dist\BPM-Detector-Pro-Windows-x64.zip` (release archive)
+- `dist\BPM-detector\` (ONEDIR folder)
+- `dist\BPM-detector-Windows-x64.zip` (release archive)
+
+To generate an installer (`Setup.exe`) after the ONEDIR build:
+
+```powershell
+.\scripts\build_windows_installer.ps1
+```
+
+Additional output:
+
+- `dist\BPM-detector-Setup-Windows-x64.exe` (installer with Start Menu shortcut + optional desktop shortcut)
 
 Notes:
 
@@ -24,7 +35,7 @@ Notes:
 - The script syncs app version from the latest Git tag (example: `v1.3.2`).
 - You can override the version: `set APP_VERSION=1.3.2` before running the build.
 
-### Linux (optimized)
+### Linux
 
 ```bash
 ./scripts/build_linux.sh
@@ -32,26 +43,9 @@ Notes:
 
 Output:
 
-- `dist/BPM-Detector-Pro`
+- `dist/BPM-detector`
 
 The Linux script also syncs version from the latest Git tag.
-
-## Classic Build (full librosa profile)
-
-If you need the non-optimized/full profile:
-
-### Windows
-
-```powershell
-$env:USE_LEGACY_BUILD = "1"
-.\scripts\build_windows.ps1
-```
-
-### Linux
-
-```bash
-pyinstaller bpm-detector.spec --clean
-```
 
 ## Prerequisites
 
@@ -64,12 +58,14 @@ pyinstaller bpm-detector.spec --clean
 2. Python dependencies:
 
 ```bash
-# Minimal/optimized profile
+# Packaging profile
 pip install -r requirements-minimal.txt pyinstaller
-
-# Full profile
-pip install -r requirements.txt pyinstaller
 ```
+
+3. Inno Setup 6 (Windows installer generation):
+
+- Install Inno Setup from https://jrsoftware.org/isinfo.php
+- Ensure `ISCC.exe` is available (default install path is supported by the script)
 
 ## Applied Optimizations
 
@@ -93,6 +89,7 @@ pip install -r requirements.txt pyinstaller
 - Unsigned executables can trigger warnings.
 - Keep ONEDIR packaging and avoid moving only the `.exe` file.
 - Sign the executable (Authenticode) for production distribution.
+- A Setup installer improves installation UX (shortcuts, fixed install path), but does not guarantee SmartScreen trust by itself.
 
 ### App starts slowly on Windows
 
@@ -103,12 +100,16 @@ pip install -r requirements.txt pyinstaller
 ### "python311.dll" or "python3.dll" missing
 
 - Extract the full ZIP folder.
-- Launch `BPM-Detector-Pro.exe` directly from the extracted folder.
+- Launch `BPM-detector.exe` directly from the extracted folder.
 - If needed, install/repair `Microsoft Visual C++ Redistributable 2015-2022 (x64)`.
 
 ## Release CI
 
 GitHub Actions release workflow runs on pushed tags matching `v*`.
+Windows CI now publishes both:
+
+- `BPM-detector-Windows-x64.zip` (portable ONEDIR)
+- `BPM-detector-Setup-Windows-x64.exe` (installer)
 
 Example:
 

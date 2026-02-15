@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""
+Single PyInstaller spec for the desktop release profile.
+Target: fast startup with a small and reliable bundle.
+"""
 import os
 import sys
 import sysconfig
 import glob
 import subprocess
-from PyInstaller.utils.hooks import (
-    collect_data_files,
-    collect_dynamic_libs,
-    collect_submodules,
-)
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 try:
     from PyInstaller.utils.hooks import get_python_library_path  # PyInstaller >= 6.3
 except Exception:
@@ -54,7 +54,7 @@ if not os.path.exists(ffmpeg_src):
     print(f"WARNING: FFmpeg binary not found at {ffmpeg_src}")
     binaries = []
 else:
-    binaries = [(ffmpeg_src, '.')] # Put it in the root of the app
+    binaries = [(ffmpeg_src, '.')]
 
 # App icon (Windows prefers .ico)
 icon_path = None
@@ -78,11 +78,10 @@ if os_name == 'windows':
     else:
         print(f"WARNING: Version info not found at {version_candidate}")
 
-# Use onefile by default on Windows for simpler distribution
-use_onedir = False
-env_use_onedir = os.environ.get('USE_ONEDIR')
-if env_use_onedir is not None:
-    use_onedir = env_use_onedir.strip().lower() in ('1', 'true', 'yes', 'y')
+# WINDOWS: use onedir mode. DLLs are normal files on disk, no dynamic extraction,
+# so Windows Defender / antivirus cannot block memory-mapped DLL loading.
+# LINUX/MACOS: use onefile mode (no antivirus issues on these platforms).
+use_onedir = (os_name == 'windows')
 
 # Favor startup reliability on Windows/Linux.
 use_upx = (os_name == 'macos')
@@ -101,15 +100,90 @@ UPX_EXCLUDE = [
     'libopenblas*.so*',
 ]
 
+# Minimal data collection - only soundfile libs
 datas = []
-hiddenimports = []
-
-# Collect dependencies
-datas += collect_data_files('librosa')
-datas += collect_data_files('soundfile')
 binaries += collect_dynamic_libs('soundfile')
-hiddenimports += collect_submodules('librosa')
-hiddenimports += collect_submodules('soundfile')
+
+# Aggressive exclusions to minimize bundle size
+# These are not needed for BPM detection
+EXCLUDES = [
+    # Heavy ML/scientific packages not needed
+    'matplotlib',
+    'IPython',
+    'notebook',
+    'jupyter',
+    'PIL',
+    'cv2',
+    'tensorflow',
+    'torch',
+    'keras',
+    'sklearn',
+    'pandas',
+    
+    # Numba JIT compiler (huge, not critical for our use case)
+    'numba',
+    'llvmlite',
+
+    # Librosa (optional, large). Runtime uses numpy-only fallback when missing.
+    'librosa',
+    
+    # Testing frameworks
+    'pytest',
+    'unittest',
+    'nose',
+    
+    # Documentation
+    'sphinx',
+    'docutils',
+    
+    # Scipy (not used in optimized build)
+    'scipy',
+    'scipy.spatial.transform',
+    'scipy.io.matlab',
+    'scipy.io.arff',
+    'scipy.io.netcdf',
+    'scipy.io.harwell_boeing',
+    'scipy.sparse.linalg._isolve',
+    'scipy.sparse.linalg._eigen',
+    
+    # Unused numpy extras
+    'numpy.distutils',
+    'numpy.f2py',
+    'numpy.testing',
+    
+    # Network/web (we only use local files)
+    'urllib3',
+    'requests',
+    'html',
+    
+    # Flask (not needed for GUI)
+    'flask',
+    'werkzeug',
+    'jinja2',
+    'click',
+    
+    # Debug/dev tools
+    'pdb',
+    'trace',
+    'cProfile',
+    'profile',
+    
+    # Unused encodings (keep core ones)
+    'encodings.idna',
+    'encodings.punycode',
+    
+    # Other unused
+    'curses',
+    'asyncio',
+    'concurrent.futures',
+    'multiprocessing.popen_spawn_win32' if os_name != 'windows' else 'multiprocessing.popen_fork',
+]
+
+# Only the essential hidden imports
+hiddenimports = [
+    'soundfile',
+    'numpy',
+]
 
 def _add_python_dlls(binaries_list):
     if sys.platform != 'win32':
@@ -265,27 +339,38 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['IPython', 'matplotlib', 'notebook'], # Smaller build
+    excludes=EXCLUDES,
     win_no_prefer_redirects=False,
     cipher=block_cipher,
     noarchive=False,
 )
 
+# Remove duplicate binaries to save space
+seen = set()
+a.binaries = [x for x in a.binaries if not (x[0] in seen or seen.add(x[0]))]
+
+# Remove unnecessary datas
+a.datas = [x for x in a.datas if not any(
+    exc in x[0] for exc in ['__pycache__', '.pyc', 'test', 'example', 'doc']
+)]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 if use_onedir:
+    # ONEDIR mode for Windows: DLLs are real files on disk, no dynamic extraction.
+    # This is the ONLY reliable way to avoid "Failed to load Python DLL" errors
+    # caused by Windows Defender blocking memory-mapped DLL loading from temp dirs.
     exe = EXE(
         pyz,
         a.scripts,
-        [],
+        [],       # No binaries/datas in EXE for onedir
         exclude_binaries=True,
-        name='BPM-Detector-Pro',
+        name='BPM-detector',
         debug=False,
         bootloader_ignore_signals=False,
         strip=use_strip,
         upx=use_upx,
         upx_exclude=UPX_EXCLUDE,
-        runtime_tmpdir=None,
         console=False,
         disable_windowed_traceback=False,
         target_arch=None,
@@ -294,7 +379,6 @@ if use_onedir:
         icon=icon_path,
         version=version_file,
     )
-
     coll = COLLECT(
         exe,
         a.binaries,
@@ -303,9 +387,10 @@ if use_onedir:
         strip=use_strip,
         upx=use_upx,
         upx_exclude=UPX_EXCLUDE,
-        name='BPM-Detector-Pro',
+        name='BPM-detector',
     )
 else:
+    # ONEFILE mode for Linux/macOS (no antivirus issues on these platforms)
     exe = EXE(
         pyz,
         a.scripts,
@@ -313,13 +398,12 @@ else:
         a.zipfiles,
         a.datas,
         [],
-        name='BPM-Detector-Pro',
+        name='BPM-detector',
         debug=False,
         bootloader_ignore_signals=False,
         strip=use_strip,
         upx=use_upx,
         upx_exclude=UPX_EXCLUDE,
-        runtime_tmpdir=None,
         console=False,
         disable_windowed_traceback=False,
         target_arch=None,

@@ -2,7 +2,7 @@ app-id: com.bpm.Detector
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
-command: bpm-detector-pro
+command: bpm-detector
 finish-args:
   - --socket=wayland
   - --socket=x11
@@ -12,7 +12,7 @@ finish-args:
   - --filesystem=xdg-music:ro
   - --device=dri
 modules:
-  - name: bpm-detector-pro
+  - name: bpm-detector
     buildsystem: simple
     build-options:
       env:
@@ -20,12 +20,12 @@ modules:
     build-commands:
       # Use pre-built binary if available, otherwise build from source
       - |
-        if [ -f flatpak-build/BPM-Detector-Pro ]; then
-          install -Dm755 flatpak-build/BPM-Detector-Pro /app/bin/bpm-detector-pro
+        if [ -f flatpak-build/BPM-detector ]; then
+          install -Dm755 flatpak-build/BPM-detector /app/bin/bpm-detector
         else
-          python3 -m pip install --user -r requirements.txt pyinstaller
+          python3 -m pip install --user -r requirements-minimal.txt pyinstaller
           python3 -m PyInstaller --noconfirm --clean bpm-detector.spec
-          install -Dm755 dist/BPM-Detector-Pro /app/bin/bpm-detector-pro
+          install -Dm755 dist/BPM-detector /app/bin/bpm-detector
         fi
       - install -Dm644 packaging/flatpak/com.bpm.Detector.desktop /app/share/applications/com.bpm.Detector.desktop
       - install -Dm644 packaging/flatpak/com.bpm.Detector.metainfo.xml /app/share/metainfo/com.bpm.Detector.metainfo.xml
@@ -33,4 +33,3 @@ modules:
     sources:
       - type: dir
         path: ../..
-

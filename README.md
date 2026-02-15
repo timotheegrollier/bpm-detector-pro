@@ -1,17 +1,17 @@
-# BPM Detector Pro
+# BPM-detector
 
 High-precision BPM detection for audio files with a modern desktop GUI, CLI, and web UI.
 
-![Version](https://img.shields.io/badge/version-1.3.2-blue)
+![Version](https://img.shields.io/badge/version-1.3.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 
 ## Features
 
 - High-precision BPM detection (hybrid autocorrelation + beat analysis)
-- Fast desktop GUI startup (optimized Tkinter app)
+- Fast desktop GUI startup
 - Multi-file batch selection from the GUI (`Fichiers...` supports Ctrl/Cmd+click)
-- Folder analysis mode for full-library scans
+- Folder analysis mode for large-library scans
 - CLI mode for automation and scripting
 - Web UI (Flask) for browser-based usage
 - Portable binaries with bundled FFmpeg (no system FFmpeg required in release artifacts)
@@ -23,20 +23,22 @@ High-precision BPM detection for audio files with a modern desktop GUI, CLI, and
 
 Download artifacts from [GitHub Releases](../../releases):
 
-- Linux: `BPM-Detector-Pro-Linux-x64`
-- Windows: `BPM-Detector-Pro-Windows-x64.zip`
-- macOS: `BPM-Detector-Pro-macOS.dmg`
+- Linux: `BPM-detector-Linux-x64`
+- Windows: `BPM-detector-Windows-x64.zip`
+- Windows Installer: `BPM-detector-Setup-Windows-x64.exe`
+- macOS: `BPM-detector-macOS.dmg`
 
 Windows note:
 
 - Extract the full ZIP folder before launching.
-- Start `BPM-Detector-Pro.exe` directly (no `.cmd` launcher required).
+- Start `BPM-detector.exe` directly (no `.cmd` launcher required).
 - Do not move only the `.exe` without the `_internal` directory.
+- Installer mode is available if you prefer Start Menu/Desktop shortcuts.
 
 ### Option 2: Run from Source
 
 ```bash
-git clone https://github.com/YOUR_USER/bpm-detector.git
+git clone https://github.com/timotheegrollier/bpm-detector.git
 cd bpm-detector
 
 python -m venv .venv
@@ -103,7 +105,7 @@ Then open `http://127.0.0.1:5000`.
 
 ## Build
 
-See [BUILDING.md](BUILDING.md) for full build and packaging instructions.
+See [BUILDING.md](BUILDING.md) for complete build and packaging instructions.
 
 Quick commands:
 
@@ -115,29 +117,41 @@ Quick commands:
 ```powershell
 # Windows
 .\scripts\build_windows.ps1
+
+# Windows installer (.exe setup)
+.\scripts\build_windows_installer.ps1
 ```
+
+Note: an installer improves installation flow and shortcut behavior, but SmartScreen warnings can still appear on unsigned releases.
 
 ## Project Layout
 
 ```text
 bpm-detector/
-├── bpm_gui.py                  # Desktop GUI (full mode)
-├── bpm_gui_fast.py             # Desktop GUI (fast startup mode)
+├── bpm_gui.py                  # Desktop GUI (single runtime profile)
+├── bpm_gui_fast.py             # Compatibility launcher (alias to bpm_gui.py)
 ├── bpm_detector.py             # Core BPM detection engine
 ├── bpm_detect.py               # CLI
 ├── app.py                      # Flask web app
 ├── scripts/                    # Build scripts
 ├── packaging/                  # Packaging assets and ffmpeg locations
+├── packaging/windows/          # Inno Setup installer script
 ├── static/                     # Web static assets
 └── templates/                  # Web templates
 ```
 
 ## Changelog
 
+### v1.3.3
+
+- Unified desktop packaging to a single runtime profile
+- Removed legacy/full build branches and obsolete fallback spec
+- Kept `bpm_gui_fast.py` as compatibility launcher to avoid breaking older scripts
+
 ### v1.3.2
 
 - Removed the Windows `.cmd` launcher from packaged artifacts
-- Keep direct startup via `BPM-Detector-Pro.exe` after full ZIP extraction
+- Keep direct startup via `BPM-detector.exe` after full ZIP extraction
 - No functional changes to the Windows executable itself
 - Updated README/build docs/release notes for the new Windows flow
 

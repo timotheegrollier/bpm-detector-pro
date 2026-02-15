@@ -7,13 +7,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 APPDIR="$ROOT/dist/AppDir"
 ARCH="$(uname -m)"
-OUT="$ROOT/dist/BPM-Detector-${ARCH}.AppImage"
+OUT="$ROOT/dist/BPM-detector-${ARCH}.AppImage"
 
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin"
 mkdir -p "$APPDIR/usr/share/icons/hicolor/scalable/apps"
 
-cp "$ROOT/dist/BPM-Detector-Pro" "$APPDIR/usr/bin/bpm-detector"
+cp "$ROOT/dist/BPM-detector" "$APPDIR/usr/bin/bpm-detector"
 cp "$ROOT/packaging/appimage/AppRun" "$APPDIR/AppRun"
 cp "$ROOT/packaging/appimage/bpm-detector.desktop" "$APPDIR/bpm-detector.desktop"
 cp "$ROOT/packaging/assets/bpm-detector.svg" \

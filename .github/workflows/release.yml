@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  APP_NAME: BPM-Detector-Pro
+  APP_NAME: BPM-detector
   APP_ID: com.bpm.Detector
 
 jobs:
@@ -54,51 +54,51 @@ jobs:
           mkdir -p pkg-root/usr/share/applications
           mkdir -p pkg-root/usr/share/icons/hicolor/scalable/apps
           
-          cp dist/${{ env.APP_NAME }} pkg-root/usr/bin/bpm-detector-pro
-          chmod +x pkg-root/usr/bin/bpm-detector-pro
+          cp dist/${{ env.APP_NAME }} pkg-root/usr/bin/bpm-detector
+          chmod +x pkg-root/usr/bin/bpm-detector
           
           # Desktop file
-          cat > pkg-root/usr/share/applications/bpm-detector-pro.desktop << 'EOF'
+          cat > pkg-root/usr/share/applications/bpm-detector.desktop << 'EOF'
           [Desktop Entry]
-          Name=BPM Detector Pro
+          Name=BPM-detector
           Comment=High-precision BPM detection for audio files
-          Exec=bpm-detector-pro
-          Icon=bpm-detector-pro
+          Exec=bpm-detector
+          Icon=bpm-detector
           Terminal=false
           Type=Application
           Categories=AudioVideo;Audio;Music;
           EOF
           
           # Icon
-          cp packaging/assets/bpm-detector.svg pkg-root/usr/share/icons/hicolor/scalable/apps/bpm-detector-pro.svg
+          cp packaging/assets/bpm-detector.svg pkg-root/usr/share/icons/hicolor/scalable/apps/bpm-detector.svg
           
           fpm -s dir -t deb \
-            -n bpm-detector-pro \
+            -n bpm-detector \
             -v "$VERSION" \
             --description "High-precision BPM detection for audio files" \
             --url "https://github.com/${{ github.repository }}" \
             --license "MIT" \
-            --maintainer "BPM Detector Pro Team" \
+            --maintainer "Timothee Grollier" \
             -C pkg-root \
             .
           
-          mv *.deb dist/bpm-detector-pro_${VERSION}_amd64.deb
+          mv *.deb dist/bpm-detector_${VERSION}_amd64.deb
 
       - name: Create RPM package
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           
           fpm -s dir -t rpm \
-            -n bpm-detector-pro \
+            -n bpm-detector \
             -v "$VERSION" \
             --description "High-precision BPM detection for audio files" \
             --url "https://github.com/${{ github.repository }}" \
             --license "MIT" \
-            --maintainer "BPM Detector Pro Team" \
+            --maintainer "Timothee Grollier" \
             -C pkg-root \
             .
           
-          mv *.rpm dist/bpm-detector-pro-${VERSION}.x86_64.rpm
+          mv *.rpm dist/bpm-detector-${VERSION}.x86_64.rpm
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -144,7 +144,7 @@ jobs:
           runtime: org.freedesktop.Platform
           runtime-version: '23.08'
           sdk: org.freedesktop.Sdk
-          command: bpm-detector-pro
+          command: bpm-detector
           finish-args:
             - --socket=wayland
             - --socket=x11
@@ -154,29 +154,29 @@ jobs:
             - --filesystem=xdg-music:ro
             - --device=dri
           modules:
-            - name: bpm-detector-pro
+            - name: bpm-detector
               buildsystem: simple
               build-commands:
-                - install -Dm755 BPM-Detector-Pro /app/bin/bpm-detector-pro
-                - install -Dm644 bpm-detector-pro.desktop /app/share/applications/com.bpm.Detector.desktop
+                - install -Dm755 BPM-detector /app/bin/bpm-detector
+                - install -Dm644 bpm-detector.desktop /app/share/applications/com.bpm.Detector.desktop
                 - install -Dm644 bpm-detector.svg /app/share/icons/hicolor/scalable/apps/com.bpm.Detector.svg
               sources:
                 - type: file
-                  path: flatpak-build/BPM-Detector-Pro
+                  path: flatpak-build/BPM-detector
                 - type: file
                   path: packaging/assets/bpm-detector.svg
                 - type: file
                   path: flatpak-desktop.desktop
-                  dest-filename: bpm-detector-pro.desktop
+                  dest-filename: bpm-detector.desktop
           EOF
           
           # Create desktop file
           cat > flatpak-desktop.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
-          Name=BPM Detector Pro
+          Name=BPM-detector
           Comment=High-precision BPM detection for audio files
-          Exec=bpm-detector-pro
+          Exec=bpm-detector
           Icon=com.bpm.Detector
           Categories=Audio;AudioVideo;Music;
           Terminal=false
@@ -265,11 +265,22 @@ jobs:
           $zipSize = (Get-Item $zipPath).Length / 1MB
           Write-Host ("ZIP: $zipPath ({0:N1} MB)" -f $zipSize)
 
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress -y
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          .\scripts\build_windows_installer.ps1 -InputDir "dist/${{ env.APP_NAME }}" -OutputDir "dist"
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/${{ env.APP_NAME }}-Windows-x64.zip
+          path: |
+            dist/${{ env.APP_NAME }}-Windows-x64.zip
+            dist/${{ env.APP_NAME }}-Setup-Windows-x64.exe
           if-no-files-found: error
 
   # ============================================
@@ -362,6 +373,7 @@ jobs:
           
           # Windows (ZIP with onedir folder)
           cp "artifacts/windows-build/${{ env.APP_NAME }}-Windows-x64.zip" "release/${{ env.APP_NAME }}-Windows-x64.zip"
+          cp "artifacts/windows-build/${{ env.APP_NAME }}-Setup-Windows-x64.exe" "release/${{ env.APP_NAME }}-Setup-Windows-x64.exe"
           
           # macOS
           cp artifacts/macos-build/${{ env.APP_NAME }}-macOS.dmg release/ || true
@@ -374,43 +386,44 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: BPM Detector Pro ${{ github.ref_name }}
+          name: BPM-detector ${{ github.ref_name }}
           body: |
-            ## BPM Detector Pro ${{ github.ref_name }}
+            ## BPM-detector ${{ github.ref_name }}
 
             This release focuses on Windows packaging cleanup and documentation alignment.
 
             ### Highlights
             - Removed the Windows `.cmd` launcher from packaged artifacts
-            - Startup remains direct via `BPM-Detector-Pro.exe` with the same `_internal` layout
+            - Startup remains direct via `BPM-detector.exe` with the same `_internal` layout
             - Updated README/build/release instructions for the new Windows startup flow
 
             ### Downloads
 
             | Platform | Format | File | Instructions |
             |----------|--------|------|--------------|
-            | Linux | Binary | `BPM-Detector-Pro-Linux-x64` | Run `chmod +x` then execute |
-            | Linux | DEB | `bpm-detector-pro_*.deb` | `sudo apt install ./file.deb` |
-            | Linux | RPM | `bpm-detector-pro-*.rpm` | `sudo dnf install ./file.rpm` |
-            | Linux | Flatpak | `BPM-Detector-Pro.flatpak` | `flatpak install ./file.flatpak` |
-            | Windows | ZIP | `BPM-Detector-Pro-Windows-x64.zip` | Extract all files, then run `BPM-Detector-Pro.exe` |
-            | macOS | DMG | `BPM-Detector-Pro-macOS.dmg` | Open and drag to Applications |
+            | Linux | Binary | `BPM-detector-Linux-x64` | Run `chmod +x` then execute |
+            | Linux | DEB | `bpm-detector_*.deb` | `sudo apt install ./file.deb` |
+            | Linux | RPM | `bpm-detector-*.rpm` | `sudo dnf install ./file.rpm` |
+            | Linux | Flatpak | `BPM-detector.flatpak` | `flatpak install ./file.flatpak` |
+            | Windows | Installer | `BPM-detector-Setup-Windows-x64.exe` | Run setup, then launch from Start Menu/Desktop shortcut |
+            | Windows | ZIP | `BPM-detector-Windows-x64.zip` | Extract all files, then run `BPM-detector.exe` |
+            | macOS | DMG | `BPM-detector-macOS.dmg` | Open and drag to Applications |
 
             ### Package Manager Install
 
             **Debian/Ubuntu (apt):**
             ```bash
-            sudo apt install ./bpm-detector-pro_*_amd64.deb
+            sudo apt install ./bpm-detector_*_amd64.deb
             ```
 
             **Fedora/RHEL (dnf):**
             ```bash
-            sudo dnf install ./bpm-detector-pro-*.x86_64.rpm
+            sudo dnf install ./bpm-detector-*.x86_64.rpm
             ```
 
             **Flatpak:**
             ```bash
-            flatpak install --user ./BPM-Detector-Pro.flatpak
+            flatpak install --user ./BPM-detector.flatpak
             ```
 
             Full documentation: [README](https://github.com/${{ github.repository }}/blob/main/README.md)

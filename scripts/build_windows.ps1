@@ -5,16 +5,8 @@ $Venv = Join-Path $Root ".venv-build"
 $Python = $env:PYTHON
 if (-not $Python) { $Python = "python" }
 
-# Use optimized spec by default, fallback to original
-$UseOptimized = $true
-if ($env:USE_LEGACY_BUILD -eq "1") { $UseOptimized = $false }
-
-Write-Host "=== BPM Detector Pro - Windows Build ===" -ForegroundColor Cyan
-if ($UseOptimized) {
-  Write-Host "Mode: OPTIMIZED (fast startup, small size)" -ForegroundColor Green
-} else {
-  Write-Host "Mode: Legacy (full librosa)" -ForegroundColor Yellow
-}
+Write-Host "=== BPM-detector - Windows Build ===" -ForegroundColor Cyan
+Write-Host "Mode: Standard (optimized runtime profile)" -ForegroundColor Green
 
 # ONEDIR mode: DLLs are normal files on disk, no dynamic extraction.
 # This is the ONLY way to reliably avoid "Failed to load Python DLL" errors
@@ -40,16 +32,12 @@ if (Test-Path $UpdateScript) {
 Write-Host "Installing dependencies..."
 & $PyExe -m pip install --upgrade pip --quiet
 
-if ($UseOptimized) {
-  Write-Host "Using minimal requirements for optimized build..."
-  if (Test-Path (Join-Path $Root "requirements-minimal.txt")) {
-    & $PyExe -m pip install -r (Join-Path $Root "requirements-minimal.txt") pyinstaller --quiet
-  } else {
-    Write-Warning "requirements-minimal.txt not found, using full requirements.txt"
-    & $PyExe -m pip install -r (Join-Path $Root "requirements.txt") pyinstaller --quiet
-  }
+Write-Host "Installing runtime dependencies..."
+if (Test-Path (Join-Path $Root "requirements-minimal.txt")) {
+  & $PyExe -m pip install -r (Join-Path $Root "requirements-minimal.txt") pyinstaller --quiet
 } else {
-    & $PyExe -m pip install -r (Join-Path $Root "requirements.txt") pyinstaller --quiet
+  Write-Warning "requirements-minimal.txt not found, using requirements.txt"
+  & $PyExe -m pip install -r (Join-Path $Root "requirements.txt") pyinstaller --quiet
 }
 
 # Check for FFmpeg
@@ -92,16 +80,8 @@ if ($UseUpx) {
   Write-Host "UPX disabled (set USE_UPX=1 to enable compression)" -ForegroundColor Yellow
 }
 
-# Select spec file
-if ($UseOptimized) {
-  $SpecFile = Join-Path $Root "bpm-detector-optimized.spec"
-  if (-not (Test-Path $SpecFile)) {
-    Write-Host "Optimized spec not found, using legacy..." -ForegroundColor Yellow
-    $SpecFile = Join-Path $Root "bpm-detector.spec"
-  }
-} else {
-  $SpecFile = Join-Path $Root "bpm-detector.spec"
-}
+# Single packaging profile
+$SpecFile = Join-Path $Root "bpm-detector.spec"
 
 Write-Host "Building with: $SpecFile"
 
@@ -115,9 +95,9 @@ if ($UseUpx -and (Test-Path $UpxExe)) {
 & $PyInstaller --noconfirm --clean @UpxArgs $SpecFile
 
 # Onedir produces a folder, create ZIP for distribution
-$OutputDir = Join-Path $Root "dist\BPM-Detector-Pro"
-$OutputExe = Join-Path $OutputDir "BPM-Detector-Pro.exe"
-$OutputZip = Join-Path $Root "dist\BPM-Detector-Pro-Windows-x64.zip"
+$OutputDir = Join-Path $Root "dist\BPM-detector"
+$OutputExe = Join-Path $OutputDir "BPM-detector.exe"
+$OutputZip = Join-Path $Root "dist\BPM-detector-Windows-x64.zip"
 $InternalDir = Join-Path $OutputDir "_internal"
 
 # Collect required runtime DLL names from the build Python version.
@@ -213,20 +193,20 @@ if (Test-Path $OutputExe) {
 
   $ReadmePath = Join-Path $OutputDir "README-Windows.txt"
   @'
-BPM Detector Pro - Windows x64
+BPM-detector - Windows x64
 ==============================
 
 IMPORTANT:
 - This package is for Windows 11/10 x64 only.
-- Keep BPM-Detector-Pro.exe and the _internal folder together.
-- Do not move BPM-Detector-Pro.exe alone outside this folder.
+- Keep BPM-detector.exe and the _internal folder together.
+- Do not move BPM-detector.exe alone outside this folder.
 
 Recommended start:
-- Double-click BPM-Detector-Pro.exe
+- Double-click BPM-detector.exe
 
 If you get "Failed to load Python DLL":
 1) Right-click the ZIP file > Properties > check "Unblock", then extract again.
-2) Extract to a short local path (example: C:\BPM-Detector-Pro\).
+2) Extract to a short local path (example: C:\BPM-detector\).
 3) Install/repair Microsoft Visual C++ Redistributable 2015-2022 (x64).
 '@ | Set-Content -Path $ReadmePath -Encoding ascii
 

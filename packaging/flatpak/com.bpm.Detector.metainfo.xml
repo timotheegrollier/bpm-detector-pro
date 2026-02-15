@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
   <id>com.bpm.Detector</id>
-  <name>BPM Detector</name>
+  <name>BPM-detector</name>
   <summary>Detection locale du tempo audio</summary>
   <description>
     <p>Detecte le BPM d'un fichier audio avec une interface simple.</p>

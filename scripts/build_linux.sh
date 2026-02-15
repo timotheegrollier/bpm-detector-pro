@@ -14,18 +14,9 @@ source "$VENV/bin/activate"
 echo "Sync version from git tag..."
 python "$ROOT/scripts/update_version.py" || echo "WARNING: update_version.py failed, using existing version"
 python -m pip install --upgrade pip
-# Default to optimized build unless USE_LEGACY_BUILD is set
-USE_OPTIMIZED=true
-if [ "${USE_LEGACY_BUILD:-0}" = "1" ]; then
-  USE_OPTIMIZED=false
-fi
 
-echo "=== BPM Detector Pro - Linux Build ==="
-if [ "$USE_OPTIMIZED" = true ]; then
-  echo "Mode: OPTIMIZED (fast startup, small size)"
-else
-  echo "Mode: Legacy (full librosa)"
-fi
+echo "=== BPM-detector - Linux Build ==="
+echo "Mode: Standard (optimized runtime profile)"
 
 if [ ! -d "$VENV" ]; then
   echo "Creating virtual environment..."
@@ -37,9 +28,10 @@ source "$VENV/bin/activate"
 echo "Installing dependencies..."
 python -m pip install --upgrade pip --quiet
 
-if [ "$USE_OPTIMIZED" = true ]; then
+if [ -f "$ROOT/requirements-minimal.txt" ]; then
   pip install -r "$ROOT/requirements-minimal.txt" pyinstaller --quiet
 else
+  echo "requirements-minimal.txt not found, using requirements.txt..."
   pip install -r "$ROOT/requirements.txt" pyinstaller --quiet
 fi
 
@@ -64,14 +56,6 @@ if [ -f "$FFMPEG_BIN" ]; then
 fi
 
 SPEC_FILE="$ROOT/bpm-detector.spec"
-if [ "$USE_OPTIMIZED" = true ]; then
-  if [ -f "$ROOT/bpm-detector-optimized.spec" ]; then
-    SPEC_FILE="$ROOT/bpm-detector-optimized.spec"
-  else
-    echo "Optimized spec not found, using legacy..."
-    SPEC_FILE="$ROOT/bpm-detector.spec"
-  fi
-fi
 
 # UPX (optional). Disabled by default on Linux to avoid breaking shared libs.
 UPX_ARGS=""
@@ -106,8 +90,8 @@ pyinstaller --noconfirm --clean \
   "$SPEC_FILE"
 
 # Post-processing optimization (strip disabled by default on Linux)
-OUTPUT_BIN="$ROOT/dist/BPM-Detector-Pro"
-if [ -f "$OUTPUT_BIN" ] && [ "$USE_OPTIMIZED" = true ]; then
+OUTPUT_BIN="$ROOT/dist/BPM-detector"
+if [ -f "$OUTPUT_BIN" ]; then
   if [ "${USE_STRIP:-0}" = "1" ]; then
     echo "Stripping binary symbols..."
     strip -s "$OUTPUT_BIN" || true

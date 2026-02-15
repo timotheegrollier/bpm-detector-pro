@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$ROOT/packaging/flatpak/com.bpm.Detector.yml"
 BUILD_DIR="$ROOT/dist/flatpak-build"
 REPO_DIR="$ROOT/dist/flatpak-repo"
-BUNDLE="$ROOT/dist/BPM-Detector.flatpak"
+BUNDLE="$ROOT/dist/BPM-detector.flatpak"
 
 if ! command -v flatpak-builder >/dev/null 2>&1; then
   echo "flatpak-builder introuvable. Installe flatpak-builder puis relance." >&2
