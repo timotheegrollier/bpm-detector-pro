@@ -105,49 +105,10 @@ datas = []
 datas += collect_data_files('librosa')
 binaries += collect_dynamic_libs('soundfile')
 
-# Aggressive exclusions to minimize bundle size
-# Keep core audio-analysis stack required by bpm_detector (librosa/scipy).
-EXCLUDES = [
-    # Heavy ML/scientific packages not needed
-    'matplotlib',
-    'IPython',
-    'notebook',
-    'jupyter',
-    'PIL',
-    'cv2',
-    'tensorflow',
-    'torch',
-    'keras',
-    'sklearn',
-    'pandas',
-    
-    # Testing frameworks
-    'pytest',
-    'unittest',
-    'nose',
-    
-    # Documentation
-    'sphinx',
-    'docutils',
-    
-    # Networking stacks (we only use local files)
-    'urllib3',
-    'requests',
-    'html',
-    
-    # Debug/dev tools
-    'pdb',
-    'trace',
-    'cProfile',
-    'profile',
-    
-    # Unused encodings (keep core ones)
-    'encodings.idna',
-    'encodings.punycode',
-    
-    # Other unused
-    'curses',
-]
+# Keep exclusions disabled for release reliability.
+# Missing stdlib/indirect dependencies in onefile builds are more costly
+# than bundle size increases.
+EXCLUDES = []
 
 # Explicit hidden imports for lazy imports used by the GUI wrapper.
 hiddenimports = [
